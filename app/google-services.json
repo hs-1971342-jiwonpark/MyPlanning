@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "635400508556",
+    "project_id": "myplanning-701fd",
+    "storage_bucket": "myplanning-701fd.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:635400508556:android:4453bda8c151893ac997a9",
+        "android_client_info": {
+          "package_name": "com.example.myplanning"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "635400508556-boivnobvgsbc71qdg8p1090v5duj9bam.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.myplanning",
+            "certificate_hash": "db692356680b9924e229890342492b71cb01ba25"
+          }
+        },
+        {
+          "client_id": "635400508556-lnr4sghkaq0cd7eipo5kemjv7qndp3cn.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.myplanning",
+            "certificate_hash": "ccf2855e7fc4e45c20bc26194dcb3329b62a8397"
+          }
+        },
+        {
+          "client_id": "635400508556-ulpf402mfnsk5f40fg025gvt9jmr0t5h.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBnjWAG6_1KB0FEPpH2NM4GPDtz1JBx24I"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "635400508556-ulpf402mfnsk5f40fg025gvt9jmr0t5h.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
