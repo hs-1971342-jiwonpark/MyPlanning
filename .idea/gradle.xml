@@ -29,8 +29,11 @@
             <option value="$PROJECT_DIR$/core/designsystem" />
             <option value="$PROJECT_DIR$/feature" />
             <option value="$PROJECT_DIR$/feature/login" />
+            <option value="$PROJECT_DIR$/feature/myaccount" />
             <option value="$PROJECT_DIR$/feature/mypage" />
+            <option value="$PROJECT_DIR$/feature/network" />
             <option value="$PROJECT_DIR$/feature/planet" />
+            <option value="$PROJECT_DIR$/feature/rule" />
           </set>
         </option>
         <option name="resolveExternalAnnotations" value="false" />
