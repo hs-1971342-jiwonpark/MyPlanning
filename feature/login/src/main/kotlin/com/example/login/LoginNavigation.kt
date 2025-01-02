@@ -1,6 +1,5 @@
 package com.example.login
 
-import android.content.Context
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavOptions
@@ -18,8 +17,7 @@ fun NavController.navigateToLogin(navOptions: NavOptions) {
 }
 
 fun NavGraphBuilder.loginScreen(
-    navController: NavController,
-    context: Context
+    navController: NavController
 ) {
     composable<LoginRoute>(
         deepLinks = listOf(
@@ -29,7 +27,7 @@ fun NavGraphBuilder.loginScreen(
         )
     ) {
         LoginScreen(
-            context = context, navController = navController
+            navController = navController
         )
     }
 }

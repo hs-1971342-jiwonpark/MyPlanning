@@ -1,4 +1,4 @@
-package com.example.data
+package com.example.data.model
 
 // 로그인 상태 모델
 sealed class LoginState {

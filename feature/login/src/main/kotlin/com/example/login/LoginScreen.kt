@@ -1,6 +1,6 @@
 package com.example.login
 
-import android.content.Context
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -21,25 +21,25 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.example.data.LoginState
+import com.example.data.model.LoginState
 import com.example.designsystem.component.text.LoginText
 import com.example.designsystem.theme.MyPlanningTheme
 import com.example.designsystem.theme.main
 
 @Composable
-fun LoginScreen(context: Context, navController: NavController) {
+fun LoginScreen(navController: NavController) {
     MyPlanningTheme {
         Surface(
             color = MaterialTheme.colorScheme.background,
         ) {
-            val viewModel: LoginViewModel = viewModel()
+            val viewModel: LoginViewModel = hiltViewModel()
             val loginState by viewModel.loginState.collectAsState()
-
+            Log.d("유저","$loginState")
             LoginBackground(
                 loginState = loginState,
-                onLoginClick = { viewModel.performGoogleLogin(context) },
+                onLoginClick = { viewModel.performGoogleLogin() },
                 onLoginSuccess = {
                     // 경로로 이동
                     navController.navigate("main") {
