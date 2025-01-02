@@ -1,5 +1,8 @@
 package ui
 
+import android.util.Log
+import androidx.collection.forEach
+import androidx.collection.isNotEmpty
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -18,6 +21,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -30,8 +35,13 @@ import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavDestination.Companion.hierarchy
 import com.example.designsystem.theme.main
 import com.example.login.LoginRoute
+import com.example.myaccount.MyAccountRoute
+import com.example.mypage.MY_ACCOUNT_ROUTE
+import com.example.mypage.MY_RULE_ROUTE
+import com.example.mypage.MyPageRoute
 import com.example.myplanning.R
 import com.example.planet.navigation.PlanetRoute
+import com.example.rule.RuleRoute
 import navigation.AppNavHost
 import navigation.NavigationDestination
 import kotlin.reflect.KClass
@@ -41,10 +51,14 @@ import kotlin.reflect.KClass
 fun MainApp() {
     val snackbarHostState = SnackbarHostState()
     val astate = rememberMainAppState()
+    LaunchedEffect(astate.navController) {
+        if (astate.navController.graph.nodes.isNotEmpty()) {
+            Log.d("바텀", "Graph: ${astate.navController.graph}")
+        }
+    }
     val currentDestination = astate.currentTopLevelDestination
     Scaffold(
         topBar = {
-            if (currentDestination != null) {
                 TopAppBar(
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = main // AppBar 배경색을 main으로 설정
@@ -63,15 +77,20 @@ fun MainApp() {
                         )
                     },
                 )
-            }
+
         },
         bottomBar = {
-            BottomNavigationBar(
-                appState = astate,
-                onItemSelected = { destination ->
-                    astate.navigateToTopLevelDestination(destination)
-                }
-            )
+            val currentRoute = astate.currentDestination?.route
+            Log.d("바텀","$currentRoute")
+            if (currentRoute != MY_RULE_ROUTE && currentRoute != MY_ACCOUNT_ROUTE) {
+                BottomNavigationBar(
+                    appState = astate,
+                    onItemSelected = { destination ->
+                        astate.navigateToTopLevelDestination(destination)
+                    }
+                )
+            }
+
         },
         snackbarHost = {
             SnackbarHost(hostState = snackbarHostState)
@@ -98,7 +117,10 @@ fun BottomNavigationBar(
         containerColor = main,
     ) {
         appState.navigationDestinations
-            .filterNot { it.route == LoginRoute::class || it.route == MainRoute::class}
+            .filterNot {
+                it.route == LoginRoute::class || it.route == MainRoute::class ||
+                it.route == MyAccountRoute::class || it.route == RuleRoute::class
+            }
             .forEach { destination ->
                 val selected = currentDestination
                     .isRouteInHierarchy(destination.route)
