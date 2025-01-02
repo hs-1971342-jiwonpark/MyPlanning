@@ -1,5 +1,7 @@
-package com.example.myplanning
+package com.example.data.di
 
+import android.util.Log
+import com.example.data.repository.UserRepository
 import com.google.firebase.firestore.FirebaseFirestore
 import dagger.Module
 import dagger.Provides
@@ -14,6 +16,14 @@ object FirebaseModule {
     @Provides
     @Singleton
     fun provideFirestore(): FirebaseFirestore {
+        Log.d("FirebaseModule", "Initializing FirebaseFirestore instance")
         return FirebaseFirestore.getInstance()
+    }
+
+    @Provides
+    @Singleton
+    fun provideUserRepository(firestore: FirebaseFirestore): UserRepository {
+        Log.d("FirebaseModule", "Initializing FirebaseFirestore instance")
+        return UserRepository(firestore)
     }
 }
