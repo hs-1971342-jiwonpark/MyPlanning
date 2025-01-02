@@ -16,7 +16,8 @@ fun NavController.navigateToPlanet(navOptions: NavOptions) {
     navigate(PlanetRoute, navOptions)
 }
 
-fun NavGraphBuilder.planetScreen() {
+fun NavGraphBuilder.planetScreen(
+) {
     composable<PlanetRoute>(
         deepLinks = listOf(
             navDeepLink {
