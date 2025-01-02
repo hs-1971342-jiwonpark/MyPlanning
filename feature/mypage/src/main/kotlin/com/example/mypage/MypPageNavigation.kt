@@ -8,7 +8,11 @@ import androidx.navigation.navDeepLink
 import kotlinx.serialization.Serializable
 
 @Serializable
-data object MyPageRoute
+data object MyPageRoute {
+    val list = listOf(
+        "MyAccount", "Rule"
+    )
+}
 
 const val uri = "myapp://main"
 
@@ -16,7 +20,7 @@ fun NavController.navigateToMyPage(navOptions: NavOptions) {
     navigate(MyPageRoute, navOptions)
 }
 
-fun NavGraphBuilder.myPageScreen() {
+fun NavGraphBuilder.myPageScreen(navController: NavController) {
     composable<MyPageRoute>(
         deepLinks = listOf(
             navDeepLink {
@@ -24,7 +28,7 @@ fun NavGraphBuilder.myPageScreen() {
             }
         )
     ) {
-        MyPageScreen()
+        MyPageScreen(navController)
     }
 }
 
