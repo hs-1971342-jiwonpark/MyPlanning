@@ -1,4 +1,4 @@
-package com.example.data
+package com.example.data.model
 
 data class ToggleComponentInfo(
     val isChecked: Boolean,
