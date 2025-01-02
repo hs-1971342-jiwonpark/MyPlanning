@@ -65,7 +65,6 @@ class MainAppState(
                 NavigationDestination.MyPage -> navController.navigateToMyPage(topLevelNavOptions)
             }
         }
-
     }
 }
 
