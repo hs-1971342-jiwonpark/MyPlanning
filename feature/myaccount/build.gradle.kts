@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.mypage"
+    namespace = "com.example.myaccount"
 }
 
 dependencies {

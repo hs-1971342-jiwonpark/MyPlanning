@@ -43,6 +43,8 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.ui)
     implementation(libs.androidx.navigation.runtime.ktx)
+    implementation(project(":feature:rule"))
+    implementation(project(":feature:myaccount"))
     androidTestImplementation(platform(libs.androidx.compose.bom))
     implementation(platform(libs.androidx.compose.bom))
 
@@ -75,6 +77,7 @@ dependencies {
 
 
     implementation(project(":core:designsystem"))
+    implementation(project(":core:data"))
     implementation(project(":feature:login"))
     implementation(project(":feature:planet"))
     implementation(project(":feature:mypage"))
