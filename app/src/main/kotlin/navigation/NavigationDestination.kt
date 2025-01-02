@@ -6,9 +6,11 @@ import androidx.compose.material.icons.rounded.AddCircle
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.example.login.LoginRoute
+import com.example.myaccount.MyAccountRoute
 import com.example.mypage.MyPageRoute
 import com.example.myplanning.R
 import com.example.planet.navigation.PlanetRoute
+import com.example.rule.RuleRoute
 import ui.MainRoute
 import kotlin.reflect.KClass
 
