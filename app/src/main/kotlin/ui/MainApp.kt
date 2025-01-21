@@ -1,14 +1,17 @@
 package ui
 
 import android.util.Log
-import androidx.collection.forEach
-import androidx.collection.isNotEmpty
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -22,71 +25,118 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavDestination.Companion.hierarchy
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.navOptions
+import com.example.designsystem.theme.SubMain
 import com.example.designsystem.theme.main
-import com.example.login.LoginRoute
-import com.example.myaccount.MyAccountRoute
-import com.example.mypage.MY_ACCOUNT_ROUTE
-import com.example.mypage.MY_RULE_ROUTE
 import com.example.mypage.MyPageRoute
 import com.example.myplanning.R
 import com.example.planet.navigation.PlanetRoute
-import com.example.rule.RuleRoute
+import com.example.planet.navigation.navigateToMakePlanet
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import navigation.AppNavHost
 import navigation.NavigationDestination
 import kotlin.reflect.KClass
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainApp() {
+internal fun MainApp(appState: MainAppState) {
     val snackbarHostState = SnackbarHostState()
-    val astate = rememberMainAppState()
-    LaunchedEffect(astate.navController) {
-        if (astate.navController.graph.nodes.isNotEmpty()) {
-            Log.d("바텀", "Graph: ${astate.navController.graph}")
+    val navBackStackEntry by appState.navController.currentBackStackEntryAsState()
+    val isLogin by appState.loginViewModel.isLoggedIn.collectAsState()
+    val isReady by appState.loginViewModel.isReady.collectAsState()
+    val isSuccess by appState.makePlanetViewModel.isSuccess.collectAsState()
+    val mainCoroutine = rememberCoroutineScope()
+    val currentDestination = navBackStackEntry?.destination?.route
+
+
+    LaunchedEffect(isLogin, isReady, isSuccess) {
+        mainCoroutine.launch {
+            delay(1000)
+            if (isLogin) {
+                appState.loginViewModel.updateIsReady(true)
+            }
+            if (isSuccess) {
+                appState.makePlanetViewModel.updateSuccessState(false)
+            }
+            appState.planetViewModel.refresh()
         }
     }
-    val currentDestination = astate.currentTopLevelDestination
-    Scaffold(
-        topBar = {
-                TopAppBar(
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = main // AppBar 배경색을 main으로 설정
-                    ),
-                    title = {
-                        Image(
-                            contentScale = ContentScale.Fit,
-                            painter = painterResource(
-                                id = R.drawable.ic_title_logo
-                            ),
-                            contentDescription = null,
-                            modifier = Modifier
-                                .fillMaxHeight()
-                                .width(120.dp)
-                                .padding(start = 8.dp) // 좌우 여백 추가
-                        )
-                    },
-                )
 
+    MainScreen(
+        snackbarHostState = snackbarHostState,
+        currentRoute = currentDestination,
+        appState = appState,
+        isLogin = isReady,
+        onClick = {
+            val topLevelNavOptions = navOptions {
+                popUpTo(appState.navController.graph.findStartDestination().id) {
+                    saveState = true
+                }
+                launchSingleTop = true
+                restoreState = true
+            }
+            appState.navController.navigateToMakePlanet(topLevelNavOptions)
+        }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MainScreen(
+    snackbarHostState: SnackbarHostState,
+    currentRoute: String?,
+    appState: MainAppState,
+    isLogin: Boolean,
+    onClick: () -> Unit
+) {
+    val shouldDisplayBottomBar = when (currentRoute) {
+        PlanetRoute::class.qualifiedName, MyPageRoute::class.qualifiedName -> true
+        else -> false
+    } && isLogin
+
+    Scaffold(
+        containerColor = main,
+        topBar = {
+            TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = main
+                ),
+                title = {
+                    Image(
+                        contentScale = ContentScale.Fit,
+                        painter = painterResource(
+                            id = R.drawable.ic_title_logo
+                        ),
+                        contentDescription = null,
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .width(120.dp)
+                            .padding(start = 8.dp)
+                    )
+                },
+            )
         },
         bottomBar = {
-            val currentRoute = astate.currentDestination?.route
-            Log.d("바텀","$currentRoute")
-            if (currentRoute != MY_RULE_ROUTE && currentRoute != MY_ACCOUNT_ROUTE) {
+            if (shouldDisplayBottomBar) {
                 BottomNavigationBar(
-                    appState = astate,
+                    appState = appState,
                     onItemSelected = { destination ->
-                        astate.navigateToTopLevelDestination(destination)
+                        appState.navigateToTopLevelDestination(destination)
                     }
                 )
             }
@@ -94,13 +144,21 @@ fun MainApp() {
         },
         snackbarHost = {
             SnackbarHost(hostState = snackbarHostState)
+        },
+        floatingActionButton = {
+            if (shouldDisplayBottomBar) {
+                AddPostFloatingButton(
+                    onClick = {
+                        onClick()
+                    }
+                )
+            }
         }
     ) { paddingValues ->
         Box(modifier = Modifier.padding(paddingValues)) {
+            Log.d("순서", "박스")
             AppNavHost(
-                appState = astate,
-                startDestination = PlanetRoute::class,
-                context = LocalContext.current
+                appState = appState
             )
         }
     }
@@ -114,12 +172,18 @@ fun BottomNavigationBar(
 ) {
     val currentDestination = appState.currentDestination
     NavigationBar(
-        containerColor = main,
+        containerColor = SubMain,
+        modifier = Modifier
+            .clip(
+                RoundedCornerShape(
+                    topStart = 20.dp,
+                    topEnd = 20.dp
+                )
+            )
     ) {
         appState.navigationDestinations
-            .filterNot {
-                it.route == LoginRoute::class || it.route == MainRoute::class ||
-                it.route == MyAccountRoute::class || it.route == RuleRoute::class
+            .filter {
+                it.route == PlanetRoute::class || it.route == MyPageRoute::class
             }
             .forEach { destination ->
                 val selected = currentDestination
@@ -161,3 +225,15 @@ private fun NavDestination?.isRouteInHierarchy(route: KClass<*>) =
     this?.hierarchy?.any {
         it.hasRoute(route)
     } ?: false
+
+@Composable
+fun AddPostFloatingButton(onClick: () -> Unit) {
+    FloatingActionButton(
+        onClick = { onClick() },
+        shape = CircleShape,
+        containerColor = SubMain,
+        contentColor = Color.White
+    ) {
+        Icon(Icons.Filled.Add, "Floating action button.")
+    }
+}

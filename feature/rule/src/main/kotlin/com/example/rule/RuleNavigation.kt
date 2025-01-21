@@ -15,6 +15,7 @@ private const val DEEP_LINK_URI = "myapp://main"
 
 fun NavGraphBuilder.ruleScreen(navController: NavController) {
     composable(
+
         route = MY_RULE_ROUTE,  // 단순 route
         deepLinks = listOf(
             navDeepLink {

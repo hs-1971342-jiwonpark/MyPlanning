@@ -29,22 +29,19 @@ import com.example.designsystem.theme.MyPlanningTheme
 import com.example.designsystem.theme.main
 
 @Composable
-fun LoginScreen(navController: NavController) {
+fun LoginScreen(loginViewModel: LoginViewModel) {
     MyPlanningTheme {
         Surface(
             color = MaterialTheme.colorScheme.background,
         ) {
-            val viewModel: LoginViewModel = hiltViewModel()
+            val viewModel: LoginViewModel = loginViewModel
             val loginState by viewModel.loginState.collectAsState()
-            Log.d("유저","$loginState")
+
             LoginBackground(
                 loginState = loginState,
                 onLoginClick = { viewModel.performGoogleLogin() },
                 onLoginSuccess = {
-                    // 경로로 이동
-                    navController.navigate("main") {
-                        popUpTo("login") { inclusive = true } // 로그인 화면 제거
-                    }
+                    viewModel.updateLoginState(true)
                 }
             )
         }

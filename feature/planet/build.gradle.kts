@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.com.example.android.library.compose)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.com.example.android.presentation.feature)
+    alias(libs.plugins.com.example.android.hilt)
 }
 
 android {

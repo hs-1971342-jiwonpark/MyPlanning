@@ -1,45 +1,91 @@
 package navigation
 
-import android.content.Context
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
+import com.example.login.LoginRoute
 import com.example.login.loginScreen
+import com.example.planet.navigation.makePlanetScreen
 import com.example.myaccount.myAccountScreen
 import com.example.mypage.myPageScreen
+import com.example.planet.navigation.PlanetRoute
+import com.example.planet.navigation.planetPostScreen
 import com.example.planet.navigation.planetScreen
+import com.example.planet.navigation.previewScreen
 import com.example.rule.ruleScreen
-import ui.MainApp
 import ui.MainAppState
 import ui.mainScreen
-import kotlin.reflect.KClass
 
 @Composable
 fun AppNavHost(
-    context: Context,
     appState: MainAppState,
-    modifier: Modifier = Modifier,
-    startDestination: KClass<*>
+    modifier: Modifier = Modifier
 ) {
+    val navController = appState.navController
+    val viewModel = appState.loginViewModel
+    val isLoggedIn by viewModel.isLoggedIn.collectAsState()
+    val startDestination : Any = if (isLoggedIn) {
+        PlanetRoute
+    } else LoginRoute
+
     NavHost(
-        navController = appState.navController,
+        navController = navController,
         startDestination = startDestination,
-        modifier = modifier
+        modifier = modifier,
+        enterTransition = {
+            slideInHorizontally(
+                initialOffsetX = { fullWidth -> fullWidth }, // 오른쪽에서 들어오기
+                animationSpec = tween(1000)
+            )
+        },
+        exitTransition = {
+            slideOutHorizontally(
+                targetOffsetX = { fullWidth -> -fullWidth }, // 왼쪽으로 나가기
+                animationSpec = tween(1000)
+            )
+        },
+        popEnterTransition = {
+            slideInHorizontally(
+                initialOffsetX = { fullWidth -> -fullWidth }, // 왼쪽에서 들어오기 (뒤로 가기 시 이전 화면)
+                animationSpec = tween(1000)
+            )
+        },
+        popExitTransition = {
+            slideOutHorizontally(
+                targetOffsetX = { fullWidth -> fullWidth }, // 오른쪽으로 나가기 (뒤로 가기 시 현재 화면 걷어내기)
+                animationSpec = tween(1000)
+            )
+        }
+
     ) {
-        // 로그인 화면
-        loginScreen(
-            navController = appState.navController
-        )
-        // 메인 화면
-        mainScreen()
-        // 로그인 -> 메인
-        composable("main") { MainApp() }
+        // Login 화면
+        loginScreen(navController, appState.loginViewModel)
+
+        // Main 화면
+        mainScreen(appState)
+
         // Planet 화면
-        planetScreen()
+        planetScreen(navController, appState.planetViewModel)
+
+        previewScreen(navController, appState.planetViewModel)
+
         // MyPage 화면
-        myPageScreen(navController = appState.navController)
-        myAccountScreen(navController = appState.navController)
-        ruleScreen(navController = appState.navController)
+        myPageScreen(navController)
+
+        // Rule 화면
+        ruleScreen(navController)
+
+        // MyAccount 화면
+        myAccountScreen(navController)
+
+        makePlanetScreen(navController, appState.makePlanetViewModel)
+
+        planetPostScreen(navController)
+
     }
 }

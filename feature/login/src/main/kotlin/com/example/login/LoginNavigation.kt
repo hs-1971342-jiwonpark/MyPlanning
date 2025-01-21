@@ -13,11 +13,12 @@ data object LoginRoute
 val uri = "myapp://main"
 
 fun NavController.navigateToLogin(navOptions: NavOptions) {
-    navigate(LoginRoute, navOptions)
+    navigate(LoginRoute,navOptions)
 }
 
 fun NavGraphBuilder.loginScreen(
-    navController: NavController
+    navController: NavController,
+    loginViewModel: LoginViewModel
 ) {
     composable<LoginRoute>(
         deepLinks = listOf(
@@ -27,7 +28,7 @@ fun NavGraphBuilder.loginScreen(
         )
     ) {
         LoginScreen(
-            navController = navController
+            loginViewModel = loginViewModel
         )
     }
 }

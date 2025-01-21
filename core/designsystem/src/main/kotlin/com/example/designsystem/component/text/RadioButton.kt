@@ -17,21 +17,21 @@ import androidx.compose.ui.unit.dp
 import com.example.data.model.ToggleComponentInfo
 
 @Composable
-fun Toggles(modifier: Modifier = Modifier) {
+fun Toggles(modifier: Modifier = Modifier, text1 : String, text2 : String) {
     val radioButtons = remember {
         mutableStateListOf(
             ToggleComponentInfo(
                 isChecked = true,
-                text = "최신순"
+                text = text1
             ),
             ToggleComponentInfo(
                 isChecked = false,
-                text = "참여자 순"
+                text = text2
             )
         )
     }
     Row(
-        horizontalArrangement = Arrangement.Start,
+        horizontalArrangement = Arrangement.Start ,
         modifier = modifier
     ) {
         radioButtons.forEachIndexed { _, info ->
@@ -47,6 +47,8 @@ fun Toggles(modifier: Modifier = Modifier) {
                     }
             ) {
                 RadioButton(
+                    modifier = Modifier
+                        .offset(x = (-14).dp),
                     selected = info.isChecked,
                     onClick = {
                         radioButtons.replaceAll {
@@ -58,7 +60,7 @@ fun Toggles(modifier: Modifier = Modifier) {
                 )
                 Text(
                     modifier = Modifier
-                        .offset(x = (-6).dp),
+                        .offset(x = (-20).dp),
                     style = MaterialTheme.typography.labelMedium,
                     text = info.text,
                     color = Color.White

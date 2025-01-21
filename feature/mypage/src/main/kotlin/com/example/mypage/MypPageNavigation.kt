@@ -8,11 +8,7 @@ import androidx.navigation.navDeepLink
 import kotlinx.serialization.Serializable
 
 @Serializable
-data object MyPageRoute {
-    val list = listOf(
-        "MyAccount", "Rule"
-    )
-}
+data object MyPageRoute
 
 const val uri = "myapp://main"
 

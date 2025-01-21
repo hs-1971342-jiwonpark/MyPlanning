@@ -44,8 +44,6 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -56,6 +54,8 @@ import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
 import com.bumptech.glide.request.target.CustomTarget
 import com.bumptech.glide.request.transition.Transition
 import com.example.data.model.User
+import com.example.designsystem.theme.ProgressBackGroundColor
+import com.example.designsystem.theme.ProgressBarColor
 import com.example.designsystem.theme.WhiteAlpha65
 import com.example.designsystem.theme.main
 
@@ -65,30 +65,32 @@ internal fun MyAccountScreen(
     modifier: Modifier = Modifier,
     viewModel: MyAccountViewModel = hiltViewModel()
 ) {
-    val userData by viewModel.userData.collectAsState()
-    val progress by remember { mutableFloatStateOf(4820f) }
+    val userPrefData by viewModel.userPrefData.collectAsState()
     var isVisible by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
+    val bitmap: MutableState<Bitmap?> = remember { mutableStateOf(null) }
+
+    LaunchedEffect(userPrefData) {
         isVisible = true
     }
+
     MyAccountScreen(
+        bitmap = bitmap,
         navController = navController,
         modifier = modifier,
-        user = userData ?: User("", "", "h"),
-        progress = progress,
+        user = userPrefData,
         isVisible = isVisible
     )
 }
 
 @Composable
 internal fun MyAccountScreen(
+    bitmap: MutableState<Bitmap?>,
     navController: NavController,
     modifier: Modifier = Modifier,
     user: User,
-    progress: Float,
     isVisible: Boolean
 ) {
-
+    val exp = user.exp.toFloat()
     Scaffold(
         modifier = modifier
             .fillMaxSize(),
@@ -101,22 +103,22 @@ internal fun MyAccountScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             MainProfile(
-                user.photoUrl, user.name, progress
+                profileUrl = user.photoUrl,
+                name = user.name,
+                bitmap = bitmap
             )
-            CardList(progress, isVisible)
+            CardList(exp, isVisible)
         }
     }
 }
 
 
-@OptIn(ExperimentalGlideComposeApi::class)
 @Composable
 fun MainProfile(
-    profileUrl: String, name: String,
-    progress: Float
+    profileUrl: String,
+    name: String,
+    bitmap: MutableState<Bitmap?>
 ) {
-    val bitmap: MutableState<Bitmap?> = remember { mutableStateOf(null) }
-
     Column(
         modifier = Modifier
             .padding(top = 40.dp)
@@ -171,20 +173,20 @@ fun CardList(
     progress: Float,
     isVisible: Boolean
 ) {
-    val menuList = listOf(
-        "레벨 및 경험치",
-        "이용 약관",
-        "보유 행성"
-    )
-    Column {
-        menuList.forEach {
-            MenuCard(it, progress, isVisible)
-        }
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.SpaceBetween
+    ) {
+        MenuCard("레벨 및 경험치", progress, isVisible)
     }
 }
 
 @Composable
-fun MenuCard(menuName: String, progress: Float, isVisible: Boolean) {
+fun MenuCard(
+    menuName: String,
+    progress: Float,
+    isVisible: Boolean
+) {
     var startAnimation by remember { mutableStateOf(false) }
 
     val progressAnimation by animateFloatAsState(
@@ -204,19 +206,20 @@ fun MenuCard(menuName: String, progress: Float, isVisible: Boolean) {
         modifier = Modifier
             .fillMaxWidth()
             .border(width = 0.5.dp, color = Color.Black)
-            .padding(16.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
                 color = WhiteAlpha65,
                 style = MaterialTheme.typography.labelMedium,
                 text = menuName,
-                modifier = Modifier.weight(0.25f)
+                modifier = Modifier.weight(0.25f),
+                textAlign = TextAlign.Center
             )
             Column(
                 modifier = Modifier
@@ -228,21 +231,22 @@ fun MenuCard(menuName: String, progress: Float, isVisible: Boolean) {
                 ) {
                     Box(
                         contentAlignment = Alignment.Center // Box 내부에서 텍스트와 프로그래스바를 정렬
-                    ){
+                    ) {
                         LinearProgressIndicator(
                             drawStopIndicator = {},
                             progress = { progressAnimation },
-                            color = Color.White,
+                            color = ProgressBarColor,
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .padding(end = 16.dp)
                                 .height(20.dp),
-                            trackColor = WhiteAlpha65,
+                            trackColor = ProgressBackGroundColor,
                             gapSize = (-15).dp,
                         )
                         Text(
                             modifier = Modifier
-                                .fillMaxWidth() ,
-                            text = "LV6 ${progress % 100f}%",
+                                .fillMaxWidth(),
+                            text = "LV${progress/100} ${progress % 100f}%",
                             style = MaterialTheme.typography.labelSmall,
                             color = main,
                             textAlign = TextAlign.Center
@@ -253,6 +257,7 @@ fun MenuCard(menuName: String, progress: Float, isVisible: Boolean) {
         }
     }
 }
+
 
 @Preview
 @Composable

@@ -17,6 +17,7 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     implementation(libs.androidx.ui.graphics)
 
+    implementation(libs.compose)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(project(":core:data"))
 

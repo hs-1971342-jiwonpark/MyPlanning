@@ -10,21 +10,23 @@ import kotlinx.serialization.Serializable
 @Serializable
 data object MainRoute
 
-const val uri = "myapp://main"
+private const val MAIN_ROUTE = "main"
+private const val DEEP_LINK_URI = "myapp://main"
 
 fun NavController.navigateToMain(navOptions: NavOptions) {
-    navigate(MainRoute, navOptions)
+    navigate(route = MainRoute, navOptions)
 }
 
-fun NavGraphBuilder.mainScreen() {
+
+fun NavGraphBuilder.mainScreen(appState: MainAppState) {
     composable<MainRoute>(
         deepLinks = listOf(
             navDeepLink {
-                uriPattern = uri
+                uriPattern = "${DEEP_LINK_URI}/${MAIN_ROUTE}"
             }
         )
     ) {
-        MainApp()
+        MainApp(appState)
     }
 }
 

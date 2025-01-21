@@ -5,6 +5,8 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavOptions
 import androidx.navigation.compose.composable
 import androidx.navigation.navDeepLink
+import com.example.planet.viewmodel.PlanetViewModel
+import com.example.planet.ui.PlanetScreen
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -17,6 +19,8 @@ fun NavController.navigateToPlanet(navOptions: NavOptions) {
 }
 
 fun NavGraphBuilder.planetScreen(
+    navController: NavController,
+    planetViewModel: PlanetViewModel
 ) {
     composable<PlanetRoute>(
         deepLinks = listOf(
@@ -25,7 +29,7 @@ fun NavGraphBuilder.planetScreen(
             }
         )
     ) {
-        PlanetScreen()
+        PlanetScreen(navController,planetViewModel)
     }
 }
 

@@ -10,6 +10,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.model.LoginState
 import com.example.data.model.User
+import com.example.data.repository.UserPrefRepository
 import com.example.data.repository.UserRepository
 import com.example.designsystem.BuildConfig
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
@@ -22,23 +23,54 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 
 @HiltViewModel
 class LoginViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val firestore: FirebaseFirestore,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val userPrefRepository: UserPrefRepository
 ) : ViewModel() {
     private val _loginState = MutableStateFlow<LoginState>(LoginState.Idle)
     val loginState: StateFlow<LoginState> = _loginState
+
     private val _userData = MutableStateFlow<User?>(null)
     val userData: StateFlow<User?> = _userData
+
     private val credentialManager = CredentialManager.create(context)
 
+    private val _isLoggedIn = MutableStateFlow(false) // 초기값은 로그아웃 상태
+    val isLoggedIn: StateFlow<Boolean> = _isLoggedIn
+
+    private val _isReady = MutableStateFlow(false) // 초기값은 로그아웃 상태
+    val isReady: StateFlow<Boolean> = _isReady
+
     init {
-        Log.d("유저", "UserRepository is injected: $userRepository")
+        checkLoginStatus()
     }
+
+    fun updateIsReady(isReady: Boolean) {
+        viewModelScope.launch {
+            _isReady.emit(isReady)
+        }
+    }
+
+    fun updateLoginState(loggedIn: Boolean) {
+        viewModelScope.launch {
+            _isLoggedIn.emit(loggedIn)
+        }
+    }
+
+    private fun checkLoginStatus(): Boolean {
+        return _isLoggedIn.value
+    }
+
+    fun logOut() {
+        _isLoggedIn.value = false
+    }
+
     fun performGoogleLogin() {
         viewModelScope.launch {
             try {
@@ -60,7 +92,22 @@ class LoginViewModel @Inject constructor(
                         GoogleIdTokenCredential.createFrom(credential.data)
                     val idToken = googleIdTokenCredential.idToken
 
-                    // Firebase 인증 처리
+                    val currentUserUid = FirebaseAuth.getInstance().currentUser?.uid
+
+                    val exp = if (currentUserUid != null) {
+                        try {
+                            val userSnapshot = firestore.collection("users")
+                                .document(currentUserUid)
+                                .get()
+                                .await()
+
+                            userSnapshot.getLong("exp")?.toInt() ?: 0
+                        } catch (e: Exception) {
+                            Log.e("Firestore", "Error fetching exp value", e)
+                            0
+                        }
+                    } else 0
+
                     FirebaseAuth.getInstance().signInWithCredential(
                         GoogleAuthProvider.getCredential(idToken, null)
                     ).addOnCompleteListener { task ->
@@ -70,18 +117,15 @@ class LoginViewModel @Inject constructor(
                                     name = user.displayName.toString(),
                                     email = user.email.toString(),
                                     photoUrl = user.photoUrl.toString(),
-                                    accessToken = idToken
+                                    uid = user.uid,
+                                    exp = exp
                                 )
-                                firestore.collection("users").document(user.uid)
-                                    .set(userInfo)
-                                    .addOnSuccessListener { Log.d("Firestore", "Success") }
-                                    .addOnFailureListener { e -> Log.e("Firestore", "Failed", e) }
-
-                                _loginState.value = LoginState.Success(userInfo)
-
-                                Log.d("로그인", "Calling saveUser with: $userInfo")
                                 userRepository.saveUser(userInfo) // 호출 전후에 로그 추가
-                                Log.d("로그인", "saveUser executed successfully")
+                                _loginState.value = LoginState.Success(userInfo)
+                                viewModelScope.launch {
+                                    userPrefRepository.setUserPrefs(userInfo)
+                                }
+                                Log.d("LoginViewModel", "saveUser executed successfully")
                             } ?: run {
                                 _loginState.value =
                                     LoginState.Error("Firebase authentication failed")
@@ -99,3 +143,4 @@ class LoginViewModel @Inject constructor(
         }
     }
 }
+

@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.model.User
+import com.example.data.repository.UserPrefRepository
 import com.example.data.repository.UserRepository
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -14,24 +15,21 @@ import javax.inject.Inject
 
 @HiltViewModel
 class MyAccountViewModel @Inject constructor(
-    private val userRepository: UserRepository
+    private val userPrefRepository: UserPrefRepository
 ) : ViewModel() {
 
-    private val _userData = MutableStateFlow<User?>(null)
-    val userData: StateFlow<User?> = _userData
+    private val _userPrefData = MutableStateFlow(User())
+    val userPrefData: StateFlow<User> = _userPrefData
 
     init {
-        Log.d("MyPageViewModel", "UserRepository is injected: $userRepository")
-        fetchUserData()
+        fetchUserDataByPref()
     }
 
-    private fun fetchUserData() {
-        val currentUser = FirebaseAuth.getInstance().currentUser
-        if (currentUser != null) {
-            viewModelScope.launch {
-                userRepository.getUser(currentUser.uid).collect { user ->
-                    _userData.value = user
-                }
+    //유저를 DataStore에서 가저옴
+    private fun fetchUserDataByPref() {
+        viewModelScope.launch {
+            userPrefRepository.getUserPrefs().collect { user ->
+                _userPrefData.value = user
             }
         }
     }

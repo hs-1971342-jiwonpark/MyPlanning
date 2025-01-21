@@ -58,11 +58,12 @@ internal fun MyPageScreen(
     viewModel: MyPageViewModel = hiltViewModel()
 ) {
     val userData by viewModel.userData.collectAsState()
+    val userPrefData by viewModel.userPrefData.collectAsState()
 
     MyPageScreen(
         navController = navController,
         modifier = modifier,
-        user = userData ?: User("", "", "h")
+        user = userPrefData ?: User()
     )
 }
 
@@ -151,8 +152,11 @@ fun MainProfile(profileUrl: String, name: String) {
 fun CardList(navController: NavController) {
     val menuList = listOf(
         "내 정보",
+        "창여 중인 행성",
         "이용 약관",
-        "보유 행성"
+        "보유 행성",
+        "로그 아웃",
+        "회원 탈퇴"
     )
     Column {
         menuList.forEachIndexed { index, item ->

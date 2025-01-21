@@ -45,6 +45,7 @@ dependencies {
     implementation(libs.androidx.navigation.runtime.ktx)
     implementation(project(":feature:rule"))
     implementation(project(":feature:myaccount"))
+    implementation(project(":feature:makeplanet"))
     androidTestImplementation(platform(libs.androidx.compose.bom))
     implementation(platform(libs.androidx.compose.bom))
 

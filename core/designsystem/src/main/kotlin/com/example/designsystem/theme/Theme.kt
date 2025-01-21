@@ -103,7 +103,7 @@ fun MyPlanningTheme(
         ),
         headlineSmall = TextStyle(
             fontFamily = CustomFontFamily,
-            fontWeight = FontWeight.Normal,
+            fontWeight = FontWeight.SemiBold,
             fontSize = 24.sp
         ),
 
@@ -115,7 +115,7 @@ fun MyPlanningTheme(
         ),
         titleMedium = TextStyle(
             fontFamily = CustomFontFamily,
-            fontWeight = FontWeight.Medium,
+            fontWeight = FontWeight.SemiBold,
             fontSize = 16.sp
         ),
         titleSmall = TextStyle(
