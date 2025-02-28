@@ -4,12 +4,10 @@ import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.navigation.toRoute
+import com.example.data.model.PostType
 import com.example.data.model.UserCard
 import com.example.data.repository.UserPrefRepository
 import com.example.data.repository.UserRepository
-import com.example.planet.navigation.PreviewRoute
-import com.example.planet.ui.PostType
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -28,39 +26,73 @@ class PlanetViewModel @Inject constructor(
     private val _cardData = MutableStateFlow<List<UserCard>>(emptyList())
     val cardData: StateFlow<List<UserCard>> = _cardData
 
+    private val _pageData = MutableStateFlow<List<UserCard>>(emptyList())
+    val pageData: StateFlow<List<UserCard>> = _pageData
+
     private val _postType = MutableStateFlow(PostType.NOT)
     val postType: StateFlow<PostType> = _postType
 
-    private val _isReady = MutableStateFlow(false)
-    val isReady: StateFlow<Boolean> = _isReady
-
     private val _planetUiState = MutableStateFlow<PlanetUiState>(PlanetUiState.Loading)
+
     val planetUiState: StateFlow<PlanetUiState> = _planetUiState.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = PlanetUiState.Loading,
     )
-    fun refresh() {
-        _planetUiState.value = PlanetUiState.Loading
+    init {
         fetchCardListData()
     }
-    init {
-        try {
-            val route = savedStateHandle.toRoute<PreviewRoute>()
-            Log.d("ViewModel", "Route: $route")
-            Log.d("ViewModel", "cId: ${route.initialCardId}, pType: ${route.initialPostType}")
-            fetchCardListData()
-        } catch (e: Exception) {
-            Log.e("ViewModel", "Error getting route", e)
+
+    fun filteredCard(text: String) {
+        if (text.isEmpty()) {
+            _planetUiState.value = PlanetUiState.Success(
+                pageData = _pageData.value,
+                cardList = _cardData.value,  // 원본 리스트 유지
+                type = _postType.value
+            )
+        } else {
+            val filterList = _cardData.value.filter {
+                it.keyWord.contains(text, ignoreCase = true) ||  // 키워드에 검색어 포함
+                        it.ownerName.contains(text, ignoreCase = true)   // 소유자 이름에 검색어 포함
+            }
+            _planetUiState.value = PlanetUiState.Success(
+                pageData = _pageData.value,
+                cardList = filterList,
+                type = _postType.value
+            )
         }
     }
 
-    private fun fetchCardListData() {
+
+    fun sortedByRecent() {
+        val sortedList = _cardData.value.sortedByDescending { it.cid }
+        _cardData.value = sortedList
+        _planetUiState.value = PlanetUiState.Success(
+            pageData = _pageData.value,
+            cardList = sortedList,
+            type = _postType.value
+        )
+    }
+
+    fun sortedByPopular() {
+        val sortedList = _cardData.value.sortedByDescending { it.participatePeople }
+        _cardData.value = sortedList
+        _planetUiState.value = PlanetUiState.Success(
+            pageData = _pageData.value,
+            cardList = sortedList,
+            type = _postType.value
+        )
+    }
+
+    fun fetchCardListData() {
         viewModelScope.launch {
+            sortedByRecent()
             try {
                 userRepository.getMainCardList().collect { cards ->
                     _cardData.value = cards
+                    _pageData.value = cards.sortedByDescending { it.participatePeople }
                     _planetUiState.value = PlanetUiState.Success(
+                        pageData = _pageData.value,
                         cardList = cards,
                         type = _postType.value
                     )
@@ -71,23 +103,20 @@ class PlanetViewModel @Inject constructor(
         }
     }
 
-    fun confirmPostType(cardOwnerId: String) {
+    fun confirmPostType(cardOwnerId: String, onComplete: (PostType) -> Unit) {
         Log.d("confirmPostType", "Method called with cardOwnerId: $cardOwnerId")
         try {
+            _planetUiState.value = PlanetUiState.Loading
             viewModelScope.launch {
                 userPrefRepository.getUserPrefs().collect { user ->
                     Log.d("confirmPostType", "Comparing $cardOwnerId with ${user.uid}")
-                    if (cardOwnerId == user.uid) {
-                        _postType.value = PostType.ME
-                        Log.d("confirmPostType", "PostType set to ME")
+                    val postType: PostType = if (cardOwnerId == user.uid) {
+                        PostType.ME
                     } else {
-                        _postType.value = PostType.OTHER
-                        Log.d("confirmPostType", "PostType set to OTHER")
+                        PostType.OTHER
                     }
-
-                    setIsReady(true)
-                    // Update UI state with new post type
-                    updateUiStateWithCurrentData()
+                    updateUiStateWithCurrentData(postType)
+                    onComplete(postType)
                 }
             }
         } catch (e: Exception) {
@@ -95,27 +124,23 @@ class PlanetViewModel @Inject constructor(
         }
     }
 
-    private fun updateUiStateWithCurrentData() {
-        if (_planetUiState.value is PlanetUiState.Success) {
-            _planetUiState.value = PlanetUiState.Success(
-                cardList = _cardData.value,
-                type = _postType.value
-            )
-        }
-    }
-
-    fun setIsReady(isReady: Boolean) {
-        viewModelScope.launch {
-            _isReady.value = isReady
-        }
+    private fun updateUiStateWithCurrentData(postType: PostType) {
+        Log.d("아이디 뷰모델", "$postType")
+        _postType.value = postType
+        _planetUiState.value = PlanetUiState.Success(
+            pageData = _pageData.value,
+            cardList = _cardData.value,
+            type = postType
+        )
     }
 
 }
 
 sealed interface PlanetUiState {
     data class Success(
+        val pageData: List<UserCard>,
         val cardList: List<UserCard>,
-        val type : PostType
+        val type: PostType
     ) : PlanetUiState
 
     data object Error : PlanetUiState

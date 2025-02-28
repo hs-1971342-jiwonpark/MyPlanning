@@ -13,6 +13,9 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation (libs.androidx.credentials)
     implementation (libs.androidx.credentials.play.services.auth)
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.core.ktx)
+    implementation(project(":common:navigation"))
     androidTestImplementation(platform(libs.androidx.compose.bom))
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.googleid)
@@ -29,5 +32,6 @@ dependencies {
     implementation(project(":core:data"))
 
     implementation(libs.compose)
+    implementation(libs.kotlinx.serialization.json.v160)
 
 }

@@ -23,6 +23,7 @@ dependencies {
     implementation(libs.firebase.firestore.ktx)
     implementation(platform(libs.firebase.bom))
 
+    implementation(libs.kotlinx.serialization.json.v160)
     implementation(libs.firebase.analytics)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(project(":core:designsystem"))

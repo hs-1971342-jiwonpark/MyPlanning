@@ -1,11 +1,9 @@
 package navigation
 
 import androidx.annotation.StringRes
-import com.example.login.LoginRoute
-import com.example.mypage.MyPageRoute
 import com.example.myplanning.R
-import com.example.planet.navigation.PlanetRoute
-import ui.MainRoute
+import com.example.navigation.Dest
+import com.example.navigation.NavigationDest
 import kotlin.reflect.KClass
 
 enum class NavigationDestination(
@@ -20,28 +18,28 @@ enum class NavigationDestination(
         unselectedIcon = R.drawable.ic_planet,
         iconTextId = R.string.planet,
         titleTextId = R.string.planet,
-        route = PlanetRoute::class
+        route = Dest.PlanetRoute::class
     ),
     Main(
         selectedIcon = R.drawable.ic_setting,
         unselectedIcon = R.drawable.ic_setting,
         iconTextId = R.string.mypage,
         titleTextId = R.string.mypage,
-        route = MainRoute::class
+        route = Dest.MainRoute::class
     ),
     Login(
         selectedIcon = 0,
         unselectedIcon = 0,
         iconTextId = R.string.login,
         titleTextId = R.string.mypage,
-        route = LoginRoute::class
+        route = Dest.LoginRoute::class
     ),
     MyPage(
         selectedIcon = R.drawable.ic_setting,
         unselectedIcon = R.drawable.ic_setting,
         iconTextId = R.string.mypage,
         titleTextId = R.string.mypage,
-        route = MyPageRoute::class
+        route = Dest.MyPageRoute::class
     )
 }
 

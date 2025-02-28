@@ -1,4 +1,4 @@
-package com.example.mypage
+package com.example.mypage.ui
 
 import android.graphics.Bitmap
 import android.graphics.drawable.Drawable
@@ -50,6 +50,9 @@ import com.bumptech.glide.request.transition.Transition
 import com.example.data.model.User
 import com.example.designsystem.theme.WhiteAlpha65
 import com.example.designsystem.theme.main
+import com.example.mypage.viewmodel.MyPageViewModel
+import com.example.mypage.R
+import com.example.navigation.Dest
 
 @Composable
 internal fun MyPageScreen(
@@ -180,8 +183,9 @@ fun MenuCard(menuName: String, navController: NavController, index: Int) {
                     launchSingleTop = true
                 }
                 when (index) {
-                    0 -> navController.navigate(MY_ACCOUNT_ROUTE, navOptions)
-                    1 -> navController.navigate(MY_RULE_ROUTE, navOptions)
+                    0 -> navController.navigate(Dest.MyAccountRoute, navOptions)
+                    1 -> navController.navigate(Dest.HoldPlanetRoute, navOptions)
+                    2 -> navController.navigate(Dest.RuleRoute, navOptions)
                 }
             },
             modifier = Modifier

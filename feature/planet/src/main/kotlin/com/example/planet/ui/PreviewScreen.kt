@@ -1,5 +1,6 @@
 package com.example.planet.ui
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -22,6 +23,7 @@ import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.navOptions
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
 import com.bumptech.glide.integration.compose.GlideImage
+import com.example.data.model.PostType
 import com.example.designsystem.component.text.CustomButton
 import com.example.designsystem.component.text.ErrorPage
 import com.example.designsystem.component.text.LoadingScreen
@@ -32,17 +34,11 @@ import com.example.planet.viewmodel.PreviewUiState
 import com.example.planet.viewmodel.PreviewViewModel
 import kotlinx.serialization.Serializable
 
-@Serializable
-enum class PostType {
-    ME, OTHER, NOT
-}
-
 @Composable
 internal fun PreviewScreen(
     viewModel: PreviewViewModel = hiltViewModel(),
     navController: NavController
 ) {
-
     val previewUiState by viewModel.previewUiState.collectAsState()
     val cardNum = viewModel.cId
     val isParticipatedIn by viewModel.isParticipatedIn.collectAsState()
@@ -92,11 +88,13 @@ internal fun PreviewScreen(
                 LoadingScreen(text = "이미지를 불러오는")
             }
 
-            is PreviewUiState.Success -> Row(
+            is PreviewUiState.Success ->
+                Row(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValue)
             ) {
+                Log.d("아이디 뷰","${previewUiState.postType}")
                 Box {
                     GlideImage(
                         modifier = Modifier
@@ -108,7 +106,7 @@ internal fun PreviewScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(Color.Black.copy(alpha = 0.5f)) // 50% 불투명도 적용
+                            .background(Color.Black.copy(alpha = 0.5f))
                     )
                     Text(
                         text = previewUiState.userCard.description,

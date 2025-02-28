@@ -22,19 +22,27 @@ internal fun Project.configureBuildTypes(
         }
 
         val apiKey = gradleLocalProperties(rootDir, providers).getProperty("API_KEY")
+        val kakaoKey = gradleLocalProperties(rootDir, providers).getProperty("KAKAO_API_KEY")
 
         when (extensionType) {
             ExtensionType.APPLICATION -> {
                 extensions.configure<ApplicationExtension> {
                     buildTypes {
                         debug {
-                            configureDebugBuildType(apiKey)
+                            configureDebugBuildType(apiKey, kakaoKey)
+                            buildConfigField("String", "KAKAO_API_KEY", "\"${gradleLocalProperties(rootDir, providers).getProperty("KAKAO_API_KEY")}\"")
+                            manifestPlaceholders["KAKAO_API_KEY"] = kakaoKey
+
                         }
                         create("staging") {
                             configureStagingBuildType(apiKey)
+                            buildConfigField("String", "KAKAO_API_KEY", "\"${gradleLocalProperties(rootDir, providers).getProperty("KAKAO_API_KEY")}\"")
+                            manifestPlaceholders["KAKAO_API_KEY"] = kakaoKey
                         }
                         release {
-                            configureReleaseBuildType(commonExtension, apiKey, true)
+                            configureReleaseBuildType(commonExtension, apiKey, kakaoKey,true)
+                            buildConfigField("String", "KAKAO_API_KEY", "\"${gradleLocalProperties(rootDir, providers).getProperty("KAKAO_API_KEY")}\"")
+                            manifestPlaceholders["KAKAO_API_KEY"] = kakaoKey
                         }
                     }
                 }
@@ -44,13 +52,13 @@ internal fun Project.configureBuildTypes(
                 extensions.configure<LibraryExtension> {
                     buildTypes {
                         debug {
-                            configureDebugBuildType(apiKey)
+                            configureDebugBuildType(apiKey,kakaoKey)
                         }
                         create("staging") {
                             configureStagingBuildType(apiKey)
                         }
                         release {
-                            configureReleaseBuildType(commonExtension, apiKey, false)
+                            configureReleaseBuildType(commonExtension, apiKey, kakaoKey, false)
                         }
                     }
                 }
@@ -59,9 +67,10 @@ internal fun Project.configureBuildTypes(
     }
 }
 
-private fun BuildType.configureDebugBuildType(apiKey: String) {
+private fun BuildType.configureDebugBuildType(apiKey: String,kakaoKey : String) {
     buildConfigField("String", "API_KEY", "\"$apiKey\"")
     buildConfigField("String", "BASE_URL", "\"DEBUG_API_URL\"")
+    buildConfigField("String", "KAKAO_API_KEY", "\"$kakaoKey\"")
 }
 
 private fun BuildType.configureStagingBuildType(apiKey: String) {
@@ -72,10 +81,12 @@ private fun BuildType.configureStagingBuildType(apiKey: String) {
 private fun BuildType.configureReleaseBuildType(
     commonExtension: CommonExtension<*, *, *, *, *, *>,
     apiKey: String,
+    kakaoKey : String,
     isMinifyEnabled: Boolean
 ) {
     buildConfigField("String", "API_KEY", "\"$apiKey\"")
     buildConfigField("String", "BASE_URL", "\"RELEASE_API_URL\"")
+    buildConfigField("String", "KAKAO_API_KEY", "\"$kakaoKey\"")
 
     this.isMinifyEnabled = isMinifyEnabled // 설정에 따라 minifyEnabled 값 적용
     proguardFiles(
@@ -108,7 +119,6 @@ internal fun Project.configureAndroidCompose(
 
 fun DependencyHandlerScope.addUILayerDependencies(project: Project) {
     add("implementation", project(":core:presentation:designsystem"))
-
     add("implementation", project.libs.findBundle("compose").get())
     add("debugImplementation", project.libs.findBundle("compose.debug").get())
     add("androidTestImplementation", project.libs.findLibrary("androidx.ui.test.junit4").get())

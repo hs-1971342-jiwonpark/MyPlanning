@@ -5,12 +5,12 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
+import com.example.data.model.PostType
 import com.example.data.model.User
 import com.example.data.model.UserCard
 import com.example.data.repository.UserPrefRepository
 import com.example.data.repository.UserRepository
-import com.example.planet.navigation.PreviewRoute
-import com.example.planet.ui.PostType
+import com.example.navigation.Dest
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -29,10 +29,10 @@ class PreviewViewModel @Inject constructor(
 
     private val _peopleCount = MutableStateFlow("")
 
-    val cId = savedStateHandle.toRoute<PreviewRoute>().initialCardId
-    val pType = savedStateHandle.toRoute<PreviewRoute>().initialPostType
+    val cId = savedStateHandle.toRoute<Dest.PreviewRoute>().initialCardId
+    val pType = savedStateHandle.toRoute<Dest.PreviewRoute>().initialPostType
 
-    private val _isParticipatedIn = MutableStateFlow<Boolean>(false)
+    private val _isParticipatedIn = MutableStateFlow(false)
     val isParticipatedIn : StateFlow<Boolean> = _isParticipatedIn
 
     val previewUiState: StateFlow<PreviewUiState> = previewUiState(
@@ -106,7 +106,7 @@ sealed interface PreviewUiState {
         val postType: PostType,
         val userCard: UserCard
     ) : PreviewUiState
-
+    
     data object Error : PreviewUiState
     data object Loading : PreviewUiState
 }

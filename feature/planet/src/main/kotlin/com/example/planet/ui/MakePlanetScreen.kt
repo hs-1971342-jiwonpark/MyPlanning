@@ -18,6 +18,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -32,6 +33,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
 import com.bumptech.glide.integration.compose.GlideImage
@@ -48,7 +50,7 @@ import com.example.planet.viewmodel.UploadState
 internal fun MakePlanetScreen(
     modifier: Modifier = Modifier,
     navController: NavController,
-    viewModel: MakePlanetViewModel
+    viewModel: MakePlanetViewModel = hiltViewModel()
 ) {
 
     var title by rememberSaveable { mutableStateOf("") }
@@ -61,9 +63,6 @@ internal fun MakePlanetScreen(
 
     val uploadState by viewModel.uploadState.collectAsState()
 
-    var shouldNavigateBack by remember { mutableStateOf(false) }
-
-
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -75,6 +74,12 @@ internal fun MakePlanetScreen(
     // 갤러리 열기 버튼 클릭 핸들러
     val openGallery = {
         launcher.launch("image/*")
+    }
+
+    LaunchedEffect(uploadState) {
+        if(uploadState == UploadState.SUCCESS) {
+            navController.popBackStack()
+        }
     }
 
     MakePlanetScreen(
@@ -92,7 +97,7 @@ internal fun MakePlanetScreen(
         onImageClick = openGallery,
         imageUri = imageUri,
         uploadState = uploadState,
-        popBack = { navController.popBackStack() }
+        popBack = {  }
     )
 
 }
@@ -185,7 +190,9 @@ internal fun MakePlanetScreen(
             }
 
             UploadState.LOADING -> LoadingScreen(text = "나만의 행성을 만드는 중")
-            UploadState.SUCCESS -> popBack()
+            UploadState.SUCCESS -> {
+                popBack()
+            }
         }
     }
 }

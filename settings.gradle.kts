@@ -18,12 +18,13 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        maven { url = java.net.URI("https://devrepo.kakao.com/nexus/content/groups/public/") }
     }
 }
 
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
-rootProject.name = "MyPlanning"
+rootProject.name = "MyPlanning2"
 include(":app")
 include(":core")
 include(":core:designsystem")
@@ -36,3 +37,5 @@ include(":feature:network")
 include(":feature:myaccount")
 include(":feature:rule")
 include(":feature:makeplanet")
+include(":common")
+include(":common:navigation")

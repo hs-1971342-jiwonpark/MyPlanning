@@ -11,22 +11,18 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navOptions
 import com.example.login.LoginViewModel
-import com.example.login.navigateToLogin
-import com.example.planet.viewmodel.MakePlanetViewModel
-import com.example.mypage.navigateToMyPage
-import com.example.planet.viewmodel.PlanetViewModel
-import com.example.planet.navigation.navigateToPlanet
+import com.example.navigation.NavigationDest
+import di.DefaultNavigator
 import navigation.NavigationDestination
 
 @Composable
 fun rememberMainAppState(
     navController: NavHostController = rememberNavController(),
     loginViewModel: LoginViewModel,
-    planetViewModel: PlanetViewModel,
-    makePlanetViewModel: MakePlanetViewModel
+    defaultNavigator: DefaultNavigator
 ): MainAppState {
-    return remember(navController, loginViewModel, planetViewModel, makePlanetViewModel) {
-        MainAppState(navController, loginViewModel, planetViewModel, makePlanetViewModel)
+    return remember(navController, loginViewModel, defaultNavigator) {
+        MainAppState(navController, loginViewModel, defaultNavigator)
     }
 }
 
@@ -34,8 +30,7 @@ fun rememberMainAppState(
 class MainAppState(
     val navController: NavHostController,
     val loginViewModel: LoginViewModel,
-    val planetViewModel: PlanetViewModel,
-    val makePlanetViewModel: MakePlanetViewModel
+    val defaultNavigator: DefaultNavigator
 ) {
     val currentDestination: NavDestination?
         @Composable get() {
@@ -59,19 +54,35 @@ class MainAppState(
 
     fun navigateToTopLevelDestination(navigationDestination: NavigationDestination) {
         trace("Navigation: ${navigationDestination.name}") {
+
             val topLevelNavOptions = navOptions {
                 popUpTo(navController.graph.findStartDestination().id) {
-                    saveState = true
+                    saveState = false
                 }
                 launchSingleTop = true
                 restoreState = true
             }
 
             when (navigationDestination) {
-                NavigationDestination.Planet -> navController.navigateToPlanet(topLevelNavOptions)
-                NavigationDestination.Login -> navController.navigateToLogin(topLevelNavOptions)
-                NavigationDestination.MyPage -> navController.navigateToMyPage(topLevelNavOptions)
-                NavigationDestination.Main -> navController.navigateToMain(topLevelNavOptions)
+                NavigationDestination.Planet -> navController.navigate(
+                    NavigationDest.PlanetRoute,
+                    topLevelNavOptions
+                )
+
+                NavigationDestination.Login -> navController.navigate(
+                    NavigationDest.LoginRoute,
+                    topLevelNavOptions
+                )
+
+                NavigationDestination.MyPage -> navController.navigate(
+                    NavigationDest.MyPageRoute,
+                    topLevelNavOptions
+                )
+
+                NavigationDestination.Main -> navController.navigate(
+                    NavigationDest.MainRoute,
+                    topLevelNavOptions
+                )
             }
         }
     }

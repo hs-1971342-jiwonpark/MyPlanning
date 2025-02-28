@@ -29,7 +29,7 @@ class MakePlanetViewModel @Inject constructor(
     private val _uploadState = MutableStateFlow(UploadState.IDLE)
     val uploadState : StateFlow<UploadState> = _uploadState
 
-    fun saveImgUri(imageUri: Uri, card: UserCard) {
+    fun saveImgUri(imageUri: Uri, card: UserCard){
         _uploadState.value = UploadState.LOADING
         try {
             viewModelScope.launch {

@@ -1,5 +1,6 @@
 package com.example.login
 
+import android.app.Activity
 import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -13,36 +14,49 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.data.model.LoginState
 import com.example.designsystem.component.text.LoginText
 import com.example.designsystem.theme.MyPlanningTheme
 import com.example.designsystem.theme.main
+import com.example.navigation.Dest
+import com.example.navigation.NavigationDest
 
 @Composable
-fun LoginScreen(loginViewModel: LoginViewModel) {
+fun LoginScreen(loginViewModel: LoginViewModel, navController: NavController) {
+
     MyPlanningTheme {
         Surface(
             color = MaterialTheme.colorScheme.background,
         ) {
             val viewModel: LoginViewModel = loginViewModel
             val loginState by viewModel.loginState.collectAsState()
+            val activity = LocalContext.current as? Activity
+
+            LaunchedEffect(loginState) {
+                if(loginState is LoginState.Success)
+                    navController.navigate(NavigationDest.PlanetRoute)
+            }
 
             LoginBackground(
                 loginState = loginState,
                 onLoginClick = { viewModel.performGoogleLogin() },
-                onLoginSuccess = {
-                    viewModel.updateLoginState(true)
-                }
+                onLoginClickForKakao = {
+                    activity?.let {
+                        viewModel.performKakaoLogin(it)
+                    } ?: Log.e("Error", "ERROR: Activity is null.")
+                },
+                onLoginSuccess = { viewModel.updateLoginState(true) }
             )
         }
     }
@@ -52,7 +66,8 @@ fun LoginScreen(loginViewModel: LoginViewModel) {
 internal fun LoginBackground(
     loginState: LoginState,
     onLoginClick: () -> Unit,
-    onLoginSuccess: () -> Unit
+    onLoginClickForKakao: () -> Unit,
+    onLoginSuccess : () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -73,6 +88,16 @@ internal fun LoginBackground(
             contentDescription = null,
             modifier = Modifier.clickable {
                 onLoginClick() // 버튼 클릭 시 이벤트 처리
+            }
+        )
+        Spacer(Modifier.size(20.dp))
+
+        Image(
+            painter = painterResource(id = R.drawable.ic_kakao_login),
+            contentScale = ContentScale.Fit,
+            contentDescription = null,
+            modifier = Modifier.clickable {
+                onLoginClickForKakao()
             }
         )
         Spacer(Modifier.size(20.dp))
@@ -100,6 +125,7 @@ fun DefaultPreview() {
     LoginBackground(
         loginState = LoginState.Idle,
         onLoginClick = {},
+        onLoginClickForKakao = {},
         onLoginSuccess = {}
     )
 }

@@ -13,6 +13,7 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation (libs.androidx.credentials)
     implementation (libs.androidx.credentials.play.services.auth)
+    implementation(project(":common:navigation"))
     androidTestImplementation(platform(libs.androidx.compose.bom))
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.googleid)
@@ -23,6 +24,7 @@ dependencies {
     implementation(libs.firebase.firestore.ktx)
     implementation(platform(libs.firebase.bom))
 
+    implementation(libs.kotlinx.serialization.json.v160)
     implementation(libs.firebase.analytics)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(project(":core:designsystem"))

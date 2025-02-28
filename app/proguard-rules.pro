@@ -21,6 +21,8 @@
 #-renamesourcefileattribute SourceFile
 
 
+# Login 관련 클래스 유지
+-keep class com.example.data.model.* {*;}
 
 # ColorKt와 관련된 클래스 유지
 -keep class com.example.designsystem.theme.ColorKt { *; }
@@ -31,12 +33,17 @@
 -keep class com.example.login.LoginRoute { *; }
 
 # MyPage 관련 클래스 유지
--keep class com.example.mypage.MyPageRoute { *; }
+-keep class com.example.mypage.navigation.MyPageRoute { *; }
 -keep class com.example.mypage.MypPageNavigationKt { *; }
 
 # Planet 관련 클래스 유지
 -keep class com.example.planet.navigation.PlanetNavigationKt { *; }
 -keep class com.example.planet.navigation.PlanetRoute { *; }
+
+# Preiview 관련 클래스 유지
+-keep class com.example.planet.navigation.PlanetNavigationKt { *; }
+-keep class com.example.planet.navigation.PlanetRoute { *; }
+-keep class com.example.planet.ui.PostType { *; }
 
 # Keep classes related to Text components from designsystem module
 -keep class com.example.designsystem.component.text.TextKt { *; }
@@ -57,3 +64,18 @@
 
 -dontwarn com.google.firebase.**
 -dontwarn com.google.android.gms.**
+
+-keep class com.kakao.sdk.**.model.* { <fields>; }
+-keep class * extends com.google.gson.TypeAdapter
+
+-dontwarn org.bouncycastle.jsse.**
+-dontwarn org.conscrypt.*
+-dontwarn org.openjsse.**
+
+
+-keep class retrofit2.** { *; }
+-keepattributes *Annotation*
+-keep class com.squareup.okhttp.** { *; }
+-keep interface com.squareup.okhttp.** { *; }
+-keep class okhttp3.** { *; }
+-keep interface okhttp3.** { *; }

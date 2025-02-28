@@ -2,35 +2,44 @@ package com.example.login
 
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
+import androidx.navigation.NavHostController
 import androidx.navigation.NavOptions
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.navigation
 import androidx.navigation.navDeepLink
-import kotlinx.serialization.Serializable
-
-@Serializable
-data object LoginRoute
+import com.example.navigation.Dest
+import com.example.navigation.FeatureGraph
+import com.example.navigation.NavigationDest
+import dagger.hilt.android.lifecycle.HiltViewModel
 
 val uri = "myapp://main"
 
-fun NavController.navigateToLogin(navOptions: NavOptions) {
-    navigate(LoginRoute,navOptions)
-}
+interface LoginFeature : FeatureGraph
 
-fun NavGraphBuilder.loginScreen(
-    navController: NavController,
-    loginViewModel: LoginViewModel
-) {
-    composable<LoginRoute>(
-        deepLinks = listOf(
-            navDeepLink {
-                uriPattern = "$uri/login"
-            }
-        )
+class LoginFeatureImpl : LoginFeature {
+    override fun navGraph(
+        navHostController: NavHostController,
+        navGraphBuilder: NavGraphBuilder,
+        provide : Any?
     ) {
-        LoginScreen(
-            loginViewModel = loginViewModel
-        )
+        navGraphBuilder.navigation<NavigationDest.LoginRoute>(startDestination = Dest.LoginRoute) {
+            composable<Dest.LoginRoute>(
+                deepLinks = listOf(
+                    navDeepLink {
+                        uriPattern = "$uri/login"
+                    }
+                )
+            ) {
+                provide as LoginViewModel
+                LoginScreen(provide, navHostController)
+            }
+        }
     }
+
 }
 
+
+fun NavController.navigateToLogin(navOptions: NavOptions) {
+    navigate(NavigationDest.LoginRoute, navOptions)
+}
 

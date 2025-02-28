@@ -1,5 +1,6 @@
 package com.example.login
 
+import android.content.ContentValues.TAG
 import android.content.Context
 import android.util.Log
 import androidx.credentials.CredentialManager
@@ -18,10 +19,12 @@ import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.firestore.FirebaseFirestore
+import com.kakao.sdk.user.UserApiClient
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
@@ -44,17 +47,8 @@ class LoginViewModel @Inject constructor(
     private val _isLoggedIn = MutableStateFlow(false) // 초기값은 로그아웃 상태
     val isLoggedIn: StateFlow<Boolean> = _isLoggedIn
 
-    private val _isReady = MutableStateFlow(false) // 초기값은 로그아웃 상태
-    val isReady: StateFlow<Boolean> = _isReady
-
     init {
         checkLoginStatus()
-    }
-
-    fun updateIsReady(isReady: Boolean) {
-        viewModelScope.launch {
-            _isReady.emit(isReady)
-        }
     }
 
     fun updateLoginState(loggedIn: Boolean) {
@@ -142,5 +136,78 @@ class LoginViewModel @Inject constructor(
             }
         }
     }
+
+
+    fun performKakaoLogin(context: Context) {
+        viewModelScope.launch {
+            _loginState.value = LoginState.Loading
+            try {
+                // 카카오 로그인 시도
+                UserApiClient.instance.loginWithKakaoTalk(context) { token, error ->
+                    if (error != null) {
+                        Log.e(TAG, "로그인 실패", error)
+                        _loginState.value = LoginState.Error("로그인 실패: ${error.message}")
+                        return@loginWithKakaoTalk
+                    }
+
+                    if (token != null) {
+                        Log.i(TAG, "로그인 성공 ${token.accessToken}")
+                        fetchKakaoUserInfo()
+                    } else {
+                        _loginState.value = LoginState.Error("토큰을 받지 못했습니다.")
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "예외 발생: ${e.message}")
+                _loginState.value = LoginState.Error("에러 발생: ${e.message}")
+            }
+        }
+    }
+
+    private fun fetchKakaoUserInfo() {
+        UserApiClient.instance.me { user, error ->
+            if (error != null) {
+                Log.e(TAG, "사용자 정보 요청 실패", error)
+                _loginState.value = LoginState.Error("사용자 정보 요청 실패: ${error.message}")
+                return@me
+            }
+
+            if (user != null) {
+                viewModelScope.launch {
+                    try {
+                        val userInfo = User(
+                            name = user.kakaoAccount?.profile?.nickname ?: "Unknown",
+                            email = user.kakaoAccount?.email ?: "No Email",
+                            photoUrl = user.kakaoAccount?.profile?.thumbnailImageUrl ?: "",
+                            uid = user.id.toString(),
+                            exp = 0
+                        )
+
+                        // Firestore에서 기존 사용자 확인
+                        val existingUser = userRepository.getUser(userInfo.uid).firstOrNull()
+
+                        if (existingUser != null) {
+                            Log.i(TAG, "기존 사용자 로그인 성공: ${existingUser.name}")
+                            _userData.value = existingUser
+                            _loginState.value = LoginState.Success(existingUser)
+                        } else {
+                            Log.i(TAG, "새로운 사용자, Firestore에 저장 중")
+                            userRepository.saveUser(userInfo)
+                            _loginState.value = LoginState.Success(userInfo)
+                        }
+
+                        userPrefRepository.setUserPrefs(userInfo)
+
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Firestore 저장 오류: ${e.message}")
+                        _loginState.value = LoginState.Error("사용자 정보 저장 실패: ${e.message}")
+                    }
+                }
+            } else {
+                _loginState.value = LoginState.Error("사용자 정보를 가져올 수 없습니다.")
+            }
+        }
+    }
+
 }
 

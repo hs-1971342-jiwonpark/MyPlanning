@@ -1,5 +1,8 @@
 package com.example.planet.ui
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -14,16 +17,19 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardColors
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -35,13 +41,15 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
 import com.bumptech.glide.integration.compose.GlideImage
+import com.example.data.model.CommentBody
+import com.example.data.model.CommentUser
 import com.example.data.model.UserCard
 import com.example.designsystem.component.text.ErrorPage
+import com.example.designsystem.component.text.ImageTextField
 import com.example.designsystem.component.text.LoadingScreen
 import com.example.designsystem.component.text.Toggles
 import com.example.designsystem.theme.SubMain
 import com.example.designsystem.theme.main
-import com.example.planet.R
 import com.example.planet.viewmodel.PlanetPostUiState
 import com.example.planet.viewmodel.PlanetPostViewModel
 
@@ -51,9 +59,27 @@ internal fun PlanetPostScreen(
     navController: NavController
 ) {
     val planetPostUiState by viewModel.planetPostUiState.collectAsState()
+    var imageUri by remember { mutableStateOf<Uri?>(Uri.EMPTY) }
+    var text by remember { mutableStateOf("") }
+    val imagePickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? -> imageUri = uri }
+
     PlanetPostScreen(
         uiState = planetPostUiState,
-        onClick = {}
+        onClick = {
+            if (text.isNotBlank()) {
+                val cUser = CommentUser()
+                val comment = CommentBody()
+                comment.comment = text
+                cUser.body = comment
+                viewModel.addComment(cUser, imageUri)
+                text = ""  // 전송 후 텍스트 필드 초기화
+                imageUri = Uri.EMPTY
+            }
+        },
+        onImageClick = { imagePickerLauncher.launch("image/*") },
+        onValueChange = { text = it },
+        text,
+        imageUri
     )
 }
 
@@ -61,20 +87,39 @@ internal fun PlanetPostScreen(
 @Composable
 internal fun PlanetPostScreen(
     uiState: PlanetPostUiState,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onImageClick: () -> Unit,
+    onValueChange: (String) -> Unit,
+    text: String,
+    imageUri: Uri?
 ) {
+
     when (uiState) {
         PlanetPostUiState.Error -> ErrorPage("에러")
         PlanetPostUiState.Loading -> LoadingScreen(text = "로딩")
         is PlanetPostUiState.Success -> Scaffold(
             containerColor = main,
             contentColor = Color.White,
-            floatingActionButton = {
-                AddPostFloatingButton(
-                    onClick = onClick
-                )
+            modifier = Modifier.padding(bottom = 16.dp),
+            bottomBar = {
+                Row(
+                    horizontalArrangement = Arrangement.Start, // 왼쪽 정렬
+                    verticalAlignment = Alignment.Top,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                ) {
+                    ImageTextField(
+                        img = imageUri,
+                        text = text,
+                        onMessageSend = onClick,
+                        onValueChange = { onValueChange(it) },
+                        onImageClick = { onImageClick() },
+                        modifier = Modifier.weight(1f)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
             }
-
         ) { paddingValue ->
             LazyColumn(
                 modifier = Modifier
@@ -140,12 +185,14 @@ internal fun PlanetPostScreen(
                             .fillMaxWidth()
                             .padding(0.dp),
                         text1 = "최신 순",
-                        text2 = "참여자 순"
+                        text2 = "참여자 순",
+                        clickable1 = {},
+                        clickable2 = {}
                     )
                 }
 
-                items(50) { index ->
-                    ContentCard()
+                items(uiState.commentList.size) { index ->
+                    ContentCard(uiState.commentList[index])
                 }
             }
         }
@@ -153,60 +200,79 @@ internal fun PlanetPostScreen(
 
 }
 
-
-@Composable
-fun AddPostFloatingButton(onClick: () -> Unit) {
-    FloatingActionButton(
-        onClick = { onClick() },
-        shape = CircleShape,
-        containerColor = SubMain,
-        contentColor = Color.White
-    ) {
-        Icon(Icons.Filled.Add, "Floating action button.")
-    }
-}
-
-
 @Preview
 @Composable
 fun d() {
     PlanetPostScreen(
         uiState = PlanetPostUiState.Success(
-            card = UserCard()
+            card = UserCard(),
+            commentList = listOf()
         ),
-        onClick = { }
+        onClick = { },
+        onImageClick = { },
+        onValueChange = { },
+        "",
+        Uri.EMPTY
     )
 }
 
 
 @OptIn(ExperimentalGlideComposeApi::class)
 @Composable
-fun ContentCard() {
-    Column {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Start
+fun ContentCard(commentUser: CommentUser) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 10.dp)
+        ,
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 3.dp
+        ),
+        colors = CardColors(
+            contentColor = Color.White,
+            disabledContentColor = main,
+            containerColor = SubMain,
+            disabledContainerColor = main
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(10.dp)
         ) {
-            GlideImage(
-                modifier = Modifier.clip(CircleShape),
-                model = R.drawable.ic_add_image,
-                contentDescription = null
-            )
-            Spacer(Modifier.width(10.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Start,
+            ) {
+                GlideImage(
+                    modifier = Modifier.clip(CircleShape),
+                    model = commentUser.profile,
+                    contentDescription = null
+                )
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    text = commentUser.name,
+                    style = MaterialTheme.typography.labelLarge
+                )
+
+            }
+            Spacer(Modifier.height(10.dp))
+            if (commentUser.body.image != null) {
+                GlideImage(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(20.dp))
+                        .aspectRatio(1f),
+                    contentScale = ContentScale.Crop,
+                    model = commentUser.body.image,
+                    contentDescription = null
+                )
+            }
+            Spacer(Modifier.height(20.dp))
             Text(
-                text = "사용자",
+                modifier = Modifier
+                    .fillMaxWidth(),
+                text = commentUser.body.comment.toString(),
                 style = MaterialTheme.typography.labelLarge
             )
+            Spacer(Modifier.height(30.dp))
         }
-        GlideImage(
-            modifier = Modifier
-                .clip(CircleShape)
-                .fillMaxWidth()
-                .aspectRatio(1f),
-            model = R.drawable.ic_add_image,
-            contentDescription = null
-        )
     }
 }

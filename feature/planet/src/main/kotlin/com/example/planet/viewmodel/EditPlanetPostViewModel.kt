@@ -8,7 +8,7 @@ import androidx.navigation.toRoute
 import com.example.data.model.UserCard
 import com.example.data.repository.UserPrefRepository
 import com.example.data.repository.UserRepository
-import com.example.planet.navigation.PlanetPostRoute
+import com.example.navigation.Dest
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -23,25 +23,25 @@ class EditPlanetPostViewModel @Inject constructor(
     private val userRepository: UserRepository,
     private val userPrefRepository: UserPrefRepository
 ) : ViewModel() {
-    val cId = savedStateHandle.toRoute<PlanetPostRoute>().cid
+    val cId = savedStateHandle.toRoute<Dest.PlanetPostRoute>().cid
 
-    val editPlanetPostUiState: StateFlow<PlanetPostUiState> = editPlanetPostUiState(
+    val editPlanetPostUiState: StateFlow<EditPlanetPostUiState> = editPlanetPostUiState(
         topicId = cId
     ).stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = PlanetPostUiState.Loading,
+        initialValue = EditPlanetPostUiState.Loading,
     )
 
     private fun editPlanetPostUiState(
         topicId: String
-    ): StateFlow<PlanetPostUiState> {
-        return MutableStateFlow<PlanetPostUiState>(PlanetPostUiState.Loading).apply {
+    ): StateFlow<EditPlanetPostUiState> {
+        return MutableStateFlow<EditPlanetPostUiState>(EditPlanetPostUiState.Loading).apply {
             if (topicId.isNotEmpty()) {
                 viewModelScope.launch {
                     userRepository.getMainCard(topicId).collect { fetchedCard ->
                         value = if (fetchedCard != null) {
-                            PlanetPostUiState.Success(
+                            EditPlanetPostUiState.Success(
                                 card = fetchedCard
                             )
                         } else {
@@ -49,13 +49,13 @@ class EditPlanetPostViewModel @Inject constructor(
                                 "PlanetViewModel",
                                 "Error: fetchedCard is nullㅇㄴㅁㄹ for topicId $topicId"
                             )
-                            PlanetPostUiState.Error
+                            EditPlanetPostUiState.Error
                         }
                     }
                 }
             } else {
                 Log.e("PlanetViewModel", "Error: fetchedCard is null for topicId $topicId")
-                value = PlanetPostUiState.Error
+                value = EditPlanetPostUiState.Error
             }
         }
     }

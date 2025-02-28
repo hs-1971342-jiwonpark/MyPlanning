@@ -5,7 +5,6 @@ plugins {
     alias(libs.plugins.com.example.android.hilt)
     id("com.google.gms.google-services")
     alias(libs.plugins.compose.compiler)
-    id("org.jetbrains.kotlin.plugin.serialization")
 }
 
 android {
@@ -46,6 +45,7 @@ dependencies {
     implementation(project(":feature:rule"))
     implementation(project(":feature:myaccount"))
     implementation(project(":feature:makeplanet"))
+    implementation(project(":common:navigation"))
     androidTestImplementation(platform(libs.androidx.compose.bom))
     implementation(platform(libs.androidx.compose.bom))
 
@@ -66,16 +66,16 @@ dependencies {
     implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore.ktx)
     implementation(platform(libs.firebase.bom))
+    implementation(libs.kotlinx.serialization.json.v160)
 
     implementation(libs.androidx.hilt.navigation.compose)
-    implementation(libs.kotlinx.serialization.json)
     implementation(libs.firebase.analytics)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.ui.graphics)
     testImplementation(libs.junit)
-
+    implementation (libs.v2.user)
 
     implementation(project(":core:designsystem"))
     implementation(project(":core:data"))

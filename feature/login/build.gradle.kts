@@ -14,6 +14,8 @@ dependencies {
     implementation (libs.androidx.credentials)
     implementation (libs.androidx.credentials.play.services.auth)
     implementation (libs.googleid)
+    implementation(project(":common:navigation"))
+    implementation(project(":common:navigation"))
     androidTestImplementation(platform(libs.androidx.compose.bom))
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.googleid)
@@ -24,6 +26,8 @@ dependencies {
     implementation(libs.firebase.firestore.ktx)
     implementation(platform(libs.firebase.bom))
 
+    implementation(libs.kotlinx.serialization.json.v160)
+    implementation (libs.v2.user)
     implementation(libs.firebase.analytics)
     implementation(libs.androidx.lifecycle.runtime.ktx)
 }

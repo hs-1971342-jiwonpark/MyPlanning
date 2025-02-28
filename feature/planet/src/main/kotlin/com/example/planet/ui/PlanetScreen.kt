@@ -1,5 +1,6 @@
 package com.example.planet.ui
 
+import android.view.ViewTreeObserver
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -27,9 +29,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material3.Card
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
@@ -45,14 +47,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.times
 import androidx.compose.ui.util.lerp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import androidx.navigation.NavGraph.Companion.findStartDestination
-import androidx.navigation.navOptions
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
 import com.bumptech.glide.integration.compose.GlideImage
 import com.example.data.model.UserCard
@@ -63,56 +65,86 @@ import com.example.designsystem.component.text.LoadingScreen
 import com.example.designsystem.component.text.Toggles
 import com.example.designsystem.theme.customPlanetItemText
 import com.example.designsystem.theme.main
-import com.example.planet.navigation.navigateToPreview
+import com.example.navigation.Dest
 import com.example.planet.viewmodel.PlanetUiState
 import com.example.planet.viewmodel.PlanetViewModel
 import kotlin.math.absoluteValue
 
 @Composable
+fun keyboardHeightObserver(): Dp {
+    val view = LocalView.current
+    val density = LocalDensity.current
+    var keyboardHeight by remember { mutableStateOf(0.dp) }
+
+    DisposableEffect(view) {
+        val listener = ViewTreeObserver.OnGlobalLayoutListener {
+            val rect = android.graphics.Rect()
+            view.getWindowVisibleDisplayFrame(rect)
+            val screenHeight = view.height
+            val keypadHeight = screenHeight - rect.bottom
+
+            keyboardHeight = if (keypadHeight > screenHeight * 0.15) {
+                with(density) { keypadHeight.toDp() }
+            } else {
+                0.dp
+            }
+        }
+        view.viewTreeObserver.addOnGlobalLayoutListener(listener)
+        onDispose {
+            view.viewTreeObserver.removeOnGlobalLayoutListener(listener)
+        }
+    }
+
+    return keyboardHeight
+}
+
+@Composable
 internal fun PlanetScreen(
     navController: NavController,
-    viewModel: PlanetViewModel
+    viewModel: PlanetViewModel = hiltViewModel()
 ) {
-    val stateCardList by viewModel.cardData.collectAsStateWithLifecycle()
-    val postType by viewModel.postType.collectAsStateWithLifecycle()
+
+    val keyBoardHeight = keyboardHeightObserver()
+    var searchText by remember { mutableStateOf("") }
     var cardId by rememberSaveable { mutableStateOf("") }
     val configuration = LocalConfiguration.current
     val columns = 2
     val spacing = 24.dp
-    val pagerState = rememberPagerState(pageCount = { stateCardList.size })
     val itemSize by remember(configuration.screenWidthDp) {
         derivedStateOf {
             (configuration.screenWidthDp.dp - ((columns + 1) * spacing)) / columns
         }
     }
-    val isReady by viewModel.isReady.collectAsState()
     val lazyListState = rememberLazyListState()
     val planetUiState by viewModel.planetUiState.collectAsState()
 
-    val topLevelNavOptions = navOptions {
-        popUpTo(navController.graph.findStartDestination().id) {
-            saveState = true
-        }
-        launchSingleTop = true
-        restoreState = true
-    }
-
-    LaunchedEffect(key1 = postType, key2 = isReady) {
-        if (isReady && postType != PostType.NOT) {
-            navController.navigateToPreview(postType, cardId, topLevelNavOptions)
-            viewModel.setIsReady(false)
-        }
+    LaunchedEffect(Unit) {
+        viewModel.fetchCardListData()
     }
 
     PlanetScreen(
+        keyBoardHeight,
+        searchText,
+        { newText ->
+            searchText = newText
+            viewModel.filteredCard(newText)
+        },
+        { viewModel.sortedByPopular() },
+        { viewModel.sortedByRecent() },
         planetUiState,
         spacing,
         itemSize,
-        stateCardList,
-        pagerState,
         lazyListState,
-        onMovePlanetPost = {
-            viewModel.confirmPostType(it)
+        onMovePlanetPost = { card ->
+            cardId = card.cid.toString()
+            viewModel.confirmPostType(card.userId.toString()) {
+                navController.navigate(
+                    Dest.PreviewRoute(
+                        initialPostType = viewModel.postType.value,
+                        initialCardId = cardId
+                    )
+                )
+            }
         },
         onSetCardId = {
             cardId = it
@@ -121,96 +153,136 @@ internal fun PlanetScreen(
 
 }
 
+@OptIn(ExperimentalLayoutApi::class, ExperimentalGlideComposeApi::class)
 @Composable
 internal fun PlanetScreen(
+    keyBoardHeight: Dp,
+    searchText: String,
+    onSearchTextChange: (String) -> Unit,
+    onSortedByPopular: () -> Unit,
+    onSortedByRecent: () -> Unit,
     planetUiState: PlanetUiState,
     spacing: Dp,
     itemSize: Dp,
-    cardList: List<UserCard>,
-    pagerState: PagerState,
     lazyListState: LazyListState,
-    onMovePlanetPost: (String) -> Unit,
+    onMovePlanetPost: (UserCard) -> Unit,
     onSetCardId: (String) -> Unit
 ) {
-    Scaffold(
-            containerColor = main
-        ) { paddingValue ->
-        when (planetUiState) {
-            PlanetUiState.Error -> ErrorPage("에러")
-            PlanetUiState.Loading -> LoadingScreen(text = "로딩")
-            is PlanetUiState.Success ->
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValue)
-                        .background(main),
-                    state = lazyListState
-                ) {
-                    item(key = "pager") {
-                        PagerSection(pagerState, cardList, onMovePlanetPost, onSetCardId)
-                    }
-
-                    item(key = "search") {
-                        CompactSearchTextField()
-                    }
-
-                    item(key = "toggles") {
-                        Toggles(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp),
-                            text1 = "최신 순",
-                            text2 = "참여자 순"
-                        )
-                    }
-
-                    item(key = "grid") {
-                        FlowRowAsGridView(
-                            itemSize,
-                            spacing,
-                            cardList,
-                            onMovePlanetPost,
-                            onSetCardId
-                        )
-                    }
-                }
-        }
+    val paddings = if (keyBoardHeight > 0.dp) {
+        keyBoardHeight
+    } else {
+        0.dp
     }
-}
 
-@Composable
-private fun PagerSection(
-    pagerState: PagerState,
-    imgList: List<UserCard?>,
-    onMovePlanetPost: (String) -> Unit,
-    onSetCardId: (String) -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        HorizontalPager(
-            state = pagerState,
-            contentPadding = PaddingValues(horizontal = 48.dp)
-        ) { page ->
-            if (page in imgList.indices) {
-                val pageOffset by remember(page, pagerState) {
-                    derivedStateOf {
-                        (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
+    when (planetUiState) {
+        PlanetUiState.Error -> ErrorPage("에러")
+        PlanetUiState.Loading -> LoadingScreen(text = "로딩")
+        is PlanetUiState.Success ->
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(main)
+                    .imePadding(),
+                state = lazyListState
+            ) {
+                item(key = "pager") {
+                    val pagerState = rememberPagerState { planetUiState.pageData.size }
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        HorizontalPager(
+                            state = pagerState,
+                            contentPadding = PaddingValues(horizontal = 48.dp)
+                        ) { page ->
+                            if (page in planetUiState.pageData.indices) {
+                                val pageOffset by remember(page, pagerState) {
+                                    derivedStateOf {
+                                        (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
+                                    }
+                                }
+                                PagerCard(
+                                    pageOffset = pageOffset,
+                                    card = planetUiState.pageData[page],
+                                    onMovePlanetPost = onMovePlanetPost,
+                                    onSetCardId = onSetCardId
+                                )
+                            }
+                        }
+
+                        PagerIndicator(pagerState)
                     }
                 }
-                PagerCard(
-                    pageOffset = pageOffset,
-                    card = imgList[page],
-                    onMovePlanetPost = onMovePlanetPost,
-                    onSetCardId = onSetCardId
-                )
-            }
-        }
 
-        PagerIndicator(pagerState)
+                item(key = "search") {
+                    CompactSearchTextField(searchText, onSearchTextChange)
+                }
+
+                item(key = "toggles") {
+                    Toggles(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        text1 = "최신 순",
+                        text2 = "참여자 순",
+                        clickable1 = onSortedByRecent,
+                        clickable2 = onSortedByPopular
+                    )
+                }
+
+                item(key = "grid") {
+                    FlowRow(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = spacing)
+                            .padding(bottom = 20.dp),
+                        horizontalArrangement = Arrangement.spacedBy(spacing),
+                        verticalArrangement = Arrangement.spacedBy(spacing)
+                    ) {
+                        planetUiState.cardList.map { card ->
+                            Card(
+                                modifier = Modifier
+                                    .size(itemSize)
+                                    .clickable {
+                                        onMovePlanetPost(card)
+                                        onSetCardId(card.cid.toString())
+                                    }
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                ) {
+                                    GlideImage(
+                                        model = card.image,
+                                        contentDescription = null,
+                                        modifier = Modifier
+                                            .fillMaxSize(),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                    NameSheet(
+                                        Modifier
+                                            .background(Color.Black.copy(alpha = 0.5f)),
+                                        text = "${card.ownerName}님의 키워드 : ${card.keyWord}",
+                                        alignment = Alignment.TopCenter
+                                    )
+
+                                    NameSheet(
+                                        Modifier
+                                            .background(Color.Black.copy(alpha = 0.5f)),
+                                        text = "${card.participatePeople}명 참여중",
+                                        alignment = Alignment.BottomCenter
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+                item {
+                    Spacer(Modifier.height(paddings))
+                }
+            }
     }
 }
 
@@ -219,7 +291,7 @@ private fun PagerSection(
 private fun PagerCard(
     pageOffset: Float,
     card: UserCard?,
-    onMovePlanetPost: (String) -> Unit,
+    onMovePlanetPost: (UserCard) -> Unit,
     onSetCardId: (String) -> Unit
 ) {
     val scale by remember(pageOffset) {
@@ -253,8 +325,10 @@ private fun PagerCard(
             }
             .padding(start = 8.dp, end = 8.dp, top = 36.dp, bottom = 32.dp)
             .clickable {
-                onMovePlanetPost(card?.userId.toString())
-                onSetCardId(card?.cid.toString())
+                if (card != null) {
+                    onMovePlanetPost(card)
+                    onSetCardId(card.cid.toString())
+                }
             }
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -301,72 +375,6 @@ private fun PagerIndicator(pagerState: PagerState) {
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-fun FlowRowAsGridView(
-    itemSize: Dp,
-    spacing: Dp,
-    cardList: List<UserCard>,
-    onMovePlanetPost: (String) -> Unit,
-    onSetCardId: (String) -> Unit
-) {
-    FlowRow(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = spacing),
-        horizontalArrangement = Arrangement.spacedBy(spacing),
-        verticalArrangement = Arrangement.spacedBy(spacing)
-    ) {
-        cardList.map {
-            PlanetCard(itemSize, it, onMovePlanetPost, onSetCardId)
-        }
-    }
-}
-
-@OptIn(ExperimentalGlideComposeApi::class)
-@Composable
-fun PlanetCard(
-    itemSize: Dp,
-    card: UserCard,
-    onMovePlanetPost: (String) -> Unit,
-    onSetCardId: (String) -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .size(itemSize)
-            .clickable {
-                onMovePlanetPost(card.userId.toString())
-                onSetCardId(card.cid.toString())
-            }
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-        ) {
-            GlideImage(
-                model = card.image,
-                contentDescription = null,
-                modifier = Modifier
-                    .fillMaxSize(),
-                contentScale = ContentScale.Crop
-            )
-            NameSheet(
-                Modifier
-                    .background(Color.Black.copy(alpha = 0.5f)),
-                text = "${card.ownerName}님의 키워드 : ${card.keyWord}",
-                alignment = Alignment.TopCenter
-            )
-
-            NameSheet(
-                Modifier
-                    .background(Color.Black.copy(alpha = 0.5f)),
-                text = "${card.participatePeople}명 참여중",
-                alignment = Alignment.BottomCenter
-            )
-        }
-    }
-}
-
 @OptIn(ExperimentalGlideComposeApi::class)
 @Composable
 fun NameSheet(
@@ -404,3 +412,4 @@ fun NameSheet(
         }
     }
 }
+

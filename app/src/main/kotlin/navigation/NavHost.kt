@@ -8,18 +8,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
-import com.example.login.LoginRoute
-import com.example.login.loginScreen
-import com.example.planet.navigation.makePlanetScreen
-import com.example.myaccount.myAccountScreen
-import com.example.mypage.myPageScreen
-import com.example.planet.navigation.PlanetRoute
-import com.example.planet.navigation.planetPostScreen
-import com.example.planet.navigation.planetScreen
-import com.example.planet.navigation.previewScreen
-import com.example.rule.ruleScreen
+import com.example.navigation.NavigationDest
 import ui.MainAppState
-import ui.mainScreen
+
 
 @Composable
 fun AppNavHost(
@@ -27,65 +18,65 @@ fun AppNavHost(
     modifier: Modifier = Modifier
 ) {
     val navController = appState.navController
+    val defaultNavigator = appState.defaultNavigator
     val viewModel = appState.loginViewModel
     val isLoggedIn by viewModel.isLoggedIn.collectAsState()
-    val startDestination : Any = if (isLoggedIn) {
-        PlanetRoute
-    } else LoginRoute
+
+    val destination = if (isLoggedIn) {
+        NavigationDest.PlanetRoute
+    } else {
+        NavigationDest.LoginRoute
+    }
 
     NavHost(
         navController = navController,
-        startDestination = startDestination,
+        startDestination = destination,
         modifier = modifier,
         enterTransition = {
             slideInHorizontally(
-                initialOffsetX = { fullWidth -> fullWidth }, // 오른쪽에서 들어오기
-                animationSpec = tween(1000)
+                initialOffsetX = { fullWidth -> fullWidth },
+                animationSpec = tween(500)
             )
         },
         exitTransition = {
             slideOutHorizontally(
-                targetOffsetX = { fullWidth -> -fullWidth }, // 왼쪽으로 나가기
-                animationSpec = tween(1000)
+                targetOffsetX = { fullWidth -> -fullWidth },
+                animationSpec = tween(500)
             )
         },
         popEnterTransition = {
             slideInHorizontally(
-                initialOffsetX = { fullWidth -> -fullWidth }, // 왼쪽에서 들어오기 (뒤로 가기 시 이전 화면)
-                animationSpec = tween(1000)
+                initialOffsetX = { fullWidth -> -fullWidth },
+                animationSpec = tween(500)
             )
         },
         popExitTransition = {
             slideOutHorizontally(
-                targetOffsetX = { fullWidth -> fullWidth }, // 오른쪽으로 나가기 (뒤로 가기 시 현재 화면 걷어내기)
-                animationSpec = tween(1000)
+                targetOffsetX = { fullWidth -> fullWidth },
+                animationSpec = tween(500)
             )
         }
 
     ) {
-        // Login 화면
-        loginScreen(navController, appState.loginViewModel)
 
-        // Main 화면
-        mainScreen(appState)
+        defaultNavigator.logInFeature.navGraph(navController, this, appState.loginViewModel)
 
-        // Planet 화면
-        planetScreen(navController, appState.planetViewModel)
+        defaultNavigator.mainFeature.navGraph(navController, this, appState)
 
-        previewScreen(navController, appState.planetViewModel)
+        defaultNavigator.planetFeature.navGraph(navController, this, null)
 
-        // MyPage 화면
-        myPageScreen(navController)
+        defaultNavigator.previewFeature.navGraph(navController, this, null)
 
-        // Rule 화면
-        ruleScreen(navController)
+        defaultNavigator.myPageFeature.navGraph(navController, this, null)
 
-        // MyAccount 화면
-        myAccountScreen(navController)
+        defaultNavigator.holdPlanetFeature.navGraph(navController, this, null)
 
-        makePlanetScreen(navController, appState.makePlanetViewModel)
+        defaultNavigator.ruleFeature.navGraph(navController, this, null)
 
-        planetPostScreen(navController)
+        defaultNavigator.myAccountFeature.navGraph(navController, this, null)
 
+        defaultNavigator.makePlanetFeature.navGraph(navController, this, null)
+
+        defaultNavigator.planetPostFeature.navGraph(navController, this, null)
     }
 }

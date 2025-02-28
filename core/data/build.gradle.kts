@@ -4,7 +4,7 @@ plugins {
     alias(libs.plugins.com.example.android.hilt)
     alias(libs.plugins.com.example.android.room)
     id("kotlin-parcelize")
-    kotlin("plugin.serialization") version "2.1.0"
+    kotlin("plugin.serialization")
 }
 
 android {
@@ -18,6 +18,7 @@ dependencies {
     implementation("com.google.firebase:firebase-storage")
     implementation(libs.firebase.firestore.ktx)
     implementation(libs.firebase.storage.ktx)
+    implementation(libs.navigation.runtime.ktx)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.lifecycle.runtime.ktx)

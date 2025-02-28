@@ -21,7 +21,6 @@ class MainViewModel  @Inject constructor(
     val isLoggedIn: StateFlow<Boolean> = _isLoggedIn
 
 
-
     private fun checkLoginStatus() {
         viewModelScope.launch {
             val loggedIn = true

@@ -32,7 +32,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -50,7 +49,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.bumptech.glide.Glide
-import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
 import com.bumptech.glide.request.target.CustomTarget
 import com.bumptech.glide.request.transition.Transition
 import com.example.data.model.User
@@ -246,7 +244,7 @@ fun MenuCard(
                         Text(
                             modifier = Modifier
                                 .fillMaxWidth(),
-                            text = "LV${progress/100} ${progress % 100f}%",
+                            text = "LV${progress / 100} ${progress % 100f}%",
                             style = MaterialTheme.typography.labelSmall,
                             color = main,
                             textAlign = TextAlign.Center

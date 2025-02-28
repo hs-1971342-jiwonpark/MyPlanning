@@ -3,6 +3,7 @@ package ui
 import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -24,10 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -35,20 +33,15 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavDestination.Companion.hierarchy
-import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.navOptions
 import com.example.designsystem.theme.SubMain
 import com.example.designsystem.theme.main
-import com.example.mypage.MyPageRoute
 import com.example.myplanning.R
-import com.example.planet.navigation.PlanetRoute
-import com.example.planet.navigation.navigateToMakePlanet
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import com.example.navigation.Dest
 import navigation.AppNavHost
 import navigation.NavigationDestination
 import kotlin.reflect.KClass
@@ -57,40 +50,14 @@ import kotlin.reflect.KClass
 internal fun MainApp(appState: MainAppState) {
     val snackbarHostState = SnackbarHostState()
     val navBackStackEntry by appState.navController.currentBackStackEntryAsState()
-    val isLogin by appState.loginViewModel.isLoggedIn.collectAsState()
-    val isReady by appState.loginViewModel.isReady.collectAsState()
-    val isSuccess by appState.makePlanetViewModel.isSuccess.collectAsState()
-    val mainCoroutine = rememberCoroutineScope()
     val currentDestination = navBackStackEntry?.destination?.route
-
-
-    LaunchedEffect(isLogin, isReady, isSuccess) {
-        mainCoroutine.launch {
-            delay(1000)
-            if (isLogin) {
-                appState.loginViewModel.updateIsReady(true)
-            }
-            if (isSuccess) {
-                appState.makePlanetViewModel.updateSuccessState(false)
-            }
-            appState.planetViewModel.refresh()
-        }
-    }
 
     MainScreen(
         snackbarHostState = snackbarHostState,
         currentRoute = currentDestination,
         appState = appState,
-        isLogin = isReady,
         onClick = {
-            val topLevelNavOptions = navOptions {
-                popUpTo(appState.navController.graph.findStartDestination().id) {
-                    saveState = true
-                }
-                launchSingleTop = true
-                restoreState = true
-            }
-            appState.navController.navigateToMakePlanet(topLevelNavOptions)
+             appState.navController.navigate(Dest.MakePlanetNavigation)
         }
     )
 }
@@ -101,15 +68,15 @@ private fun MainScreen(
     snackbarHostState: SnackbarHostState,
     currentRoute: String?,
     appState: MainAppState,
-    isLogin: Boolean,
     onClick: () -> Unit
 ) {
     val shouldDisplayBottomBar = when (currentRoute) {
-        PlanetRoute::class.qualifiedName, MyPageRoute::class.qualifiedName -> true
+        Dest.PlanetRoute::class.qualifiedName, Dest.MyPageRoute::class.qualifiedName -> true
         else -> false
-    } && isLogin
+    }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0.dp),
         containerColor = main,
         topBar = {
             TopAppBar(
@@ -183,7 +150,7 @@ fun BottomNavigationBar(
     ) {
         appState.navigationDestinations
             .filter {
-                it.route == PlanetRoute::class || it.route == MyPageRoute::class
+                it.route == Dest.PlanetRoute::class || it.route == Dest.MyPageRoute::class
             }
             .forEach { destination ->
                 val selected = currentDestination

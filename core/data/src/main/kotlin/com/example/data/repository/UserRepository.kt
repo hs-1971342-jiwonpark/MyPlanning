@@ -2,8 +2,10 @@ package com.example.data.repository
 
 import android.net.Uri
 import android.util.Log
+import com.example.data.model.CommentUser
 import com.example.data.model.User
 import com.example.data.model.UserCard
+import com.google.firebase.firestore.AggregateSource
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
@@ -23,13 +25,17 @@ class UserRepository @Inject constructor(
     private val firestore: FirebaseFirestore,
     private val fireStorage: FirebaseStorage
 ) {
-    private val cardRef = fireStorage.reference
+    private val fireStorageRef = fireStorage.reference
+    private val cardStorageRef = fireStorageRef.child("cards")
+    private val cardStoreRef = firestore.collection("cards")
+    private val userStoreRef = firestore.collection("users")
 
+    //카드 업로드
     suspend fun cardUpload(imageUri: Uri, card: UserCard): Flow<String> = flow {
         try {
             val fileName = "${card.keyWord}.png"
             val imageUrl = suspendCoroutine { continuation ->
-                val storageRef = cardRef.child("cards").child(fileName)
+                val storageRef = cardStorageRef.child(fileName)
 
                 storageRef.putFile(imageUri)
                     .continueWithTask { task ->
@@ -51,10 +57,11 @@ class UserRepository @Inject constructor(
         }
     }
 
+    //플래닛 카드 리스트 가저오기
     suspend fun getMainCardList(): Flow<List<UserCard>> = flow {
         try {
             val cardList = suspendCoroutine { continuation ->
-                firestore.collection("cards").get()
+                cardStoreRef.get()
                     .addOnSuccessListener { querySnapshot ->
                         val cards =
                             querySnapshot.documents.mapNotNull { it.toObject(UserCard::class.java) }
@@ -70,11 +77,31 @@ class UserRepository @Inject constructor(
         }
     }
 
+    suspend fun getHoldCardList(userId : String) : Flow<List<UserCard>> = flow {
+        try {
+            val cardList = suspendCoroutine { continuation ->
+                userStoreRef.document(userId).collection("cards").get()
+                    .addOnSuccessListener { querySnapshot ->
+                        val cards =
+                            querySnapshot.documents.mapNotNull { it.toObject(UserCard::class.java) }
+                        continuation.resume(cards) // 성공 시 리스트 반환
+                    }
+                    .addOnFailureListener { exception ->
+                        continuation.resumeWithException(exception) // 실패 시 예외 반환
+                    }
+            }
+            emit(cardList)
+        } catch (e: Exception) {
+            throw e
+        }
+    }
+
+    //선택한 카드 가저오기
     suspend fun getMainCard(cardId: String): Flow<UserCard?> = flow {
         Log.d("아이디", cardId)
         try {
             val card = suspendCoroutine { continuation ->
-                firestore.collection("cards")
+                cardStoreRef
                     .document(cardId)
                     .get() // 특정 조건으로 필터링
                     .addOnSuccessListener { querySnapshot ->
@@ -92,10 +119,11 @@ class UserRepository @Inject constructor(
         }
     }
 
+    //마지막에 저장한 카드 가저오기 (카드 추가용)
     suspend fun getRecentStorageCardId(): Flow<Int> = flow {
         try {
             val cid = suspendCoroutine { continuation ->
-                firestore.collection("cards")
+                cardStoreRef
                     .orderBy("cid", Query.Direction.DESCENDING) // 정렬 기준 추가
                     .limit(1) // 마지막 문서 1개만 가져오기
                     .get()
@@ -119,44 +147,120 @@ class UserRepository @Inject constructor(
         }
     }
 
-    fun confirmParticipateInUser(cardId : String, uid : String) : Flow<Boolean> = flow {
-            val documentSnapshot = firestore
-                .collection("cards")
-                .document(cardId)
-                .collection("participateUser")
-                .document(uid)
-                .get()
-                .await()
+    //해당 행성 참여중인 유저 가저오기
+    fun confirmParticipateInUser(cardId: String, uid: String): Flow<Boolean> = flow {
+        Log.d("카드 송신", "$cardId")
+        val documentSnapshot = cardStoreRef
+            .document(cardId)
+            .collection("participateUser")
+            .document(uid)
+            .get()
+            .await()
         emit(documentSnapshot.exists())
     }
 
+    //참여중인 유저 수 늘리기
     fun updateParticipateInUser(cardId: String, peopleCount: String, user: User) {
-        firestore
-            .collection("cards")
+        cardStoreRef
             .document(cardId)
             .update("participatePeople", peopleCount)
             .addOnSuccessListener { Log.d("Firestore", "Success") }
             .addOnFailureListener { e -> Log.e("Firestore", "Failed", e) }
-        firestore.collection("cards")
+
+        cardStoreRef
             .document(cardId)
             .collection("participateUser")
             .document(user.uid)
             .set(user)
-
     }
 
-    fun saveUser(user: User) {
-        firestore.collection("users").document(user.uid).set(user)
+    //댓글
+    suspend fun addComment(cardId: String, commentUser: CommentUser) {
+
+        val commentStore = cardStoreRef
+            .document(cardId)
+            .collection("comment")
+        try {
+            val coId = commentStore
+                .count()
+                .get(AggregateSource.SERVER)
+                .await()
+            commentUser.coId = coId.count.toInt()
+        } catch (e: Exception) {
+            Log.e("FirestoreCounter", "Error counting documents", e)
+            0
+        }
+
+        commentStore
+            .add(commentUser)
             .addOnSuccessListener { Log.d("Firestore", "Success") }
             .addOnFailureListener { e -> Log.e("Firestore", "Failed", e) }
     }
 
+    //카드 업로드
+    suspend fun commentImgUpload(imageUri: Uri, cid: String): Flow<String> = flow {
+        try {
+            val fileName = "${imageUri.lastPathSegment}.png" //후에수정
+            val imageUrl = suspendCoroutine { continuation ->
+                val imgRef = cardStorageRef.child("$cid/$fileName")
+
+                imgRef.putFile(imageUri)
+                    .continueWithTask { task ->
+                        if (!task.isSuccessful) {
+                            task.exception?.let { throw it }
+                        }
+                        imgRef.downloadUrl
+                    }
+                    .addOnSuccessListener { uri ->
+                        continuation.resume(uri.toString())
+                    }
+                    .addOnFailureListener { exception ->
+                        continuation.resumeWithException(exception)
+                    }
+            }
+            emit(imageUrl)
+        } catch (e: Exception) {
+            throw e
+        }
+    }
+
+    //댓글 리스트 가저오기
+    fun getCommentList(cardId: String): Flow<List<CommentUser>> = flow {
+        try {
+            val commentList = suspendCoroutine { continuation ->
+                cardStoreRef
+                    .document(cardId)
+                    .collection("comment")
+                    .get()
+                    .addOnSuccessListener { querySnapshot ->
+                        val comments =
+                            querySnapshot.documents.mapNotNull { it.toObject(CommentUser::class.java) }
+                        continuation.resume(comments) // 성공 시 리스트 반환
+                    }
+                    .addOnFailureListener { exception ->
+                        continuation.resumeWithException(exception) // 실패 시 예외 반환
+                    }
+            }
+            emit(commentList)
+        } catch (e: Exception) {
+            throw e
+        }
+    }
+
+    //새로운 유저 추가
+    fun saveUser(user: User) {
+        userStoreRef.document(user.uid).set(user)
+            .addOnSuccessListener { Log.d("Firestore", "Success") }
+            .addOnFailureListener { e -> Log.e("Firestore", "Failed", e) }
+    }
+
+    //카드, 소유 유저 저장
     fun saveCard(card: UserCard): Flow<Boolean> = flow {
         try {
-            firestore.collection("cards").document(card.cid.toString())
+            cardStoreRef.document(card.cid.toString())
                 .set(card).await()
 
-            firestore.collection("users").document(card.userId.toString())
+            userStoreRef.document(card.userId.toString())
                 .collection("cards").document(card.cid.toString())
                 .set(card).await()
 
@@ -168,9 +272,10 @@ class UserRepository @Inject constructor(
     }.flowOn(Dispatchers.IO)
 
 
+    //유저 가저오기
     suspend fun getUser(userId: String): Flow<User?> = flow {
         try {
-            val document = firestore.collection("users").document(userId).get().await()
+            val document = userStoreRef.document(userId).get().await()
             val user = document.toObject(User::class.java)
             emit(user)
         } catch (e: Exception) {
@@ -178,10 +283,9 @@ class UserRepository @Inject constructor(
         }
     }
 
-
+    //경험치 증가
     fun expUp(uid: String, exp: Int) {
-        val documentReference = firestore
-            .collection("users")
+        val documentReference = userStoreRef
             .document(uid)
 
         documentReference.update("exp", FieldValue.increment(exp.toLong()))
