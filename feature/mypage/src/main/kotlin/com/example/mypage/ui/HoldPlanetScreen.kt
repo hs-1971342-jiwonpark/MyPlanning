@@ -4,14 +4,17 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.material3.Card
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -33,10 +36,10 @@ import com.example.designsystem.R
 import com.example.designsystem.component.text.ErrorPage
 import com.example.designsystem.component.text.LoadingScreen
 import com.example.designsystem.theme.customPlanetItemText
-import com.example.utils.Extension
 import com.example.mypage.viewmodel.HoldPlanetUiState
 import com.example.mypage.viewmodel.HoldPlanetViewModel
 import com.example.navigation.Dest
+import com.example.utils.Extension
 
 @Composable
 internal fun HoldPlanetScreen(
@@ -81,54 +84,65 @@ internal fun HoldPlanetScreen(
     when (holdPlanetUiState) {
         HoldPlanetUiState.Error -> ErrorPage("ERROR")
         HoldPlanetUiState.Loading -> LoadingScreen(text = "보유 행성을 불러오는 중 입니다...")
-        is HoldPlanetUiState.Success -> LazyRow(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 24.dp)
-                .padding(bottom = 20.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            holdPlanetUiState.cardList.map { card ->
-                item {
-                    Card(
-                        modifier = Modifier
-                            .size(300.dp)
-                            .clickable {
-                                onMovePlanetPost(card)
-                                onSetCardId(card.cid.toString())
-                            }
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                        ) {
-                            GlideImage(
-                                model = card.image,
-                                contentDescription = null,
-                                modifier = Modifier
-                                    .fillMaxSize(),
-                                contentScale = ContentScale.Crop
-                            )
-                            NameSheet(
-                                Modifier
-                                    .background(Color.Black.copy(alpha = 0.5f)),
-                                text = "${card.ownerName}님의 키워드 : ${card.keyWord}",
-                                alignment = Alignment.TopCenter
-                            )
+        is HoldPlanetUiState.Success ->
 
-                            NameSheet(
-                                Modifier
-                                    .background(Color.Black.copy(alpha = 0.5f)),
-                                text = "${card.participatePeople}명 참여중",
-                                alignment = Alignment.BottomCenter
-                            )
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 24.dp)
+                    .padding(bottom = 20.dp),
+            ) {
+                Text(
+                    text = "참여 중인 행성",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = Color.White
+                )
+                Spacer(Modifier.height(20.dp))
+                LazyRow(
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    holdPlanetUiState.cardList.map { card ->
+                        item {
+                            Card(
+                                modifier = Modifier
+                                    .size(300.dp)
+                                    .clickable {
+                                        onMovePlanetPost(card)
+                                        onSetCardId(card.cid.toString())
+                                    }
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                ) {
+                                    GlideImage(
+                                        model = card.image,
+                                        contentDescription = null,
+                                        modifier = Modifier
+                                            .fillMaxSize(),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                    NameSheet(
+                                        Modifier
+                                            .background(Color.Black.copy(alpha = 0.5f)),
+                                        text = "${card.ownerName}님의 키워드 : ${card.keyWord}",
+                                        alignment = Alignment.TopCenter
+                                    )
+
+                                    NameSheet(
+                                        Modifier
+                                            .background(Color.Black.copy(alpha = 0.5f)),
+                                        text = "${card.participatePeople}명 참여중",
+                                        alignment = Alignment.BottomCenter
+                                    )
+                                }
+                            }
+                            Spacer(Modifier.padding(20.dp))
                         }
                     }
-                    Spacer(Modifier.padding(20.dp))
                 }
             }
-        }
     }
 }
 
