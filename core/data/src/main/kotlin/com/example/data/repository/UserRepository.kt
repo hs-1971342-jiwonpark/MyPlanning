@@ -12,6 +12,7 @@ import com.google.firebase.firestore.Query
 import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.tasks.await
@@ -77,20 +78,15 @@ class UserRepository @Inject constructor(
         }
     }
 
-    suspend fun getHoldCardList(userId : String) : Flow<List<UserCard>> = flow {
+    suspend fun getHoldCardList(userId: String): Flow<List<String>> = flow {
         try {
-            val cardList = suspendCoroutine { continuation ->
-                userStoreRef.document(userId).collection("cards").get()
-                    .addOnSuccessListener { querySnapshot ->
-                        val cards =
-                            querySnapshot.documents.mapNotNull { it.toObject(UserCard::class.java) }
-                        continuation.resume(cards) // 성공 시 리스트 반환
-                    }
-                    .addOnFailureListener { exception ->
-                        continuation.resumeWithException(exception) // 실패 시 예외 반환
-                    }
-            }
-            emit(cardList)
+            val cardIdList = userStoreRef.document(userId)
+                .collection("participateCard")
+                .get()
+                .await()
+                .documents.map { it.id }
+
+            emit(cardIdList) // Flow로 반환
         } catch (e: Exception) {
             throw e
         }
@@ -172,6 +168,13 @@ class UserRepository @Inject constructor(
             .collection("participateUser")
             .document(user.uid)
             .set(user)
+
+        userStoreRef
+            .document(user.uid)
+            .collection("participateCard")
+            .document(cardId)
+            .set(cardId to cardId)
+
     }
 
     //댓글

@@ -1,21 +1,17 @@
 package com.example.mypage.viewmodel
 
 import android.util.Log
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.model.PostType
-import com.example.data.model.User
 import com.example.data.model.UserCard
 import com.example.data.repository.UserPrefRepository
 import com.example.data.repository.UserRepository
-import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -39,11 +35,6 @@ class HoldPlanetViewModel @Inject constructor(
     private val _postType = MutableStateFlow(PostType.NOT)
     val postType: StateFlow<PostType> = _postType
 
-    fun refresh() {
-        _holdUiState.value = HoldPlanetUiState.Loading
-        fetchCardListData()
-    }
-
     init {
         fetchCardListData()
     }
@@ -51,13 +42,21 @@ class HoldPlanetViewModel @Inject constructor(
     private fun fetchCardListData() {
         viewModelScope.launch {
             try {
-                userRepository.getHoldCardList(userPrefRepository.getUserPrefs().first().uid).collect { cards ->
-                    _cardData.value = cards
-                    _holdUiState.value = HoldPlanetUiState.Success(
-                        cardList = cards,
-                        type = _postType.value
-                    )
+                val cardIdList =
+                    userRepository.getHoldCardList(userPrefRepository.getUserPrefs().first().uid)
+                        .first()
+                val cardList = mutableListOf<UserCard>()
+
+                cardIdList.forEach {
+                    userRepository.getMainCard(it).first()?.let { card -> cardList.add(card) }
                 }
+                Log.d("카드","$cardList")
+                _cardData.value = cardList
+                _holdUiState.value = HoldPlanetUiState.Success(
+                    cardList = cardList,
+                    type = _postType.value
+                )
+
             } catch (e: Exception) {
                 _holdUiState.value = HoldPlanetUiState.Error
             }
@@ -86,7 +85,7 @@ class HoldPlanetViewModel @Inject constructor(
     }
 
     private fun updateUiStateWithCurrentData(postType: PostType) {
-        Log.d("아이디 뷰모델","$postType")
+        Log.d("아이디 뷰모델", "$postType")
         _postType.value = postType
         _holdUiState.value = HoldPlanetUiState.Success(
             cardList = _cardData.value,
