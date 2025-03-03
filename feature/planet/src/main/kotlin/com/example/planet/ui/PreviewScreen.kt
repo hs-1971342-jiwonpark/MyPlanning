@@ -3,8 +3,11 @@ package com.example.planet.ui
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -19,20 +22,16 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import androidx.navigation.NavGraph.Companion.findStartDestination
-import androidx.navigation.navOptions
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
 import com.bumptech.glide.integration.compose.GlideImage
 import com.example.data.model.PostType
 import com.example.designsystem.component.text.CustomButton
 import com.example.designsystem.component.text.ErrorPage
 import com.example.designsystem.component.text.LoadingScreen
-import com.example.designsystem.theme.BlackAlpha50
 import com.example.designsystem.theme.main
-import com.example.planet.navigation.navigateToPlanetPost
+import com.example.navigation.Dest
 import com.example.planet.viewmodel.PreviewUiState
 import com.example.planet.viewmodel.PreviewViewModel
-import kotlinx.serialization.Serializable
 
 @Composable
 internal fun PreviewScreen(
@@ -43,15 +42,7 @@ internal fun PreviewScreen(
     val cardNum = viewModel.cId
     val isParticipatedIn by viewModel.isParticipatedIn.collectAsState()
 
-    val topLevelNavOptions = navOptions {
-        popUpTo(navController.graph.findStartDestination().id) {
-            saveState = true
-        }
-        launchSingleTop = true
-        restoreState = true
-    }
-
-    val onClick: () -> Unit = { navController.navigateToPlanetPost(cardNum, topLevelNavOptions) }
+    val onClick: () -> Unit = { navController.navigate(Dest.PlanetPostRoute(cardNum)) }
 
     PreviewScreen(
         isParticipatedIn = isParticipatedIn,
@@ -90,49 +81,58 @@ internal fun PreviewScreen(
 
             is PreviewUiState.Success ->
                 Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValue)
-            ) {
-                Log.d("아이디 뷰","${previewUiState.postType}")
-                Box {
-                    GlideImage(
-                        modifier = Modifier
-                            .fillMaxSize(),
-                        model = previewUiState.userCard.image,
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop
-                    )
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color.Black.copy(alpha = 0.5f))
-                    )
-                    Text(
-                        text = previewUiState.userCard.description,
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier
-                            .padding(20.dp)
-                    )
-                    if (previewUiState.postType == PostType.OTHER && !isParticipatedIn) {
-                        CustomButton(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValue)
+                ) {
+                    Box {
+                        GlideImage(
                             modifier = Modifier
-                                .align(Alignment.BottomCenter)
-                                .padding(40.dp),
-                            text = "참여하기",
-                            onClick = goNextScreen
+                                .fillMaxSize(),
+                            model = previewUiState.userCard.image,
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop
                         )
-                    } else {
-                        CustomButton(
+                        Box(
                             modifier = Modifier
-                                .align(Alignment.BottomCenter)
-                                .padding(40.dp),
-                            text = "이동하기",
-                            onClick = onClick
+                                .fillMaxSize()
+                                .background(Color.Black.copy(alpha = 0.5f))
                         )
+                        Column {
+                            Spacer(Modifier.height(40.dp))
+                            Text(
+                                text = previewUiState.userCard.keyWord,
+                                style = MaterialTheme.typography.displayLarge,
+                                modifier = Modifier
+                                    .padding(20.dp)
+                            )
+                            Spacer(Modifier.height(20.dp))
+                            Text(
+                                text = previewUiState.userCard.description,
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier
+                                    .padding(20.dp)
+                            )
+                        }
+                        if (previewUiState.postType == PostType.OTHER && !isParticipatedIn) {
+                            CustomButton(
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .padding(40.dp),
+                                text = "참여하기",
+                                onClick = goNextScreen
+                            )
+                        } else {
+                            CustomButton(
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .padding(40.dp),
+                                text = "이동하기",
+                                onClick = onClick
+                            )
+                        }
                     }
                 }
-            }
 
         }
 

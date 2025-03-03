@@ -14,6 +14,8 @@ data class CommentUser(
     var cid: String = "",
     var name: String = "",
     var profile: String = "",
+    var isLiked : Boolean = false,
+    var likeCount : Long = 0,
     var body: CommentBody = CommentBody()
 )
 

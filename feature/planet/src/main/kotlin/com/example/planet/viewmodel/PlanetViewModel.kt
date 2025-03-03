@@ -65,7 +65,7 @@ class PlanetViewModel @Inject constructor(
 
 
     fun sortedByRecent() {
-        val sortedList = _cardData.value.sortedByDescending { it.cid }
+        val sortedList = _cardData.value.sortedBy { it.cid }
         _cardData.value = sortedList
         _planetUiState.value = PlanetUiState.Success(
             pageData = _pageData.value,

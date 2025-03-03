@@ -29,6 +29,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material3.Card
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -103,13 +104,12 @@ internal fun PlanetScreen(
     navController: NavController,
     viewModel: PlanetViewModel = hiltViewModel()
 ) {
-
     val keyBoardHeight = keyboardHeightObserver()
     var searchText by remember { mutableStateOf("") }
     var cardId by rememberSaveable { mutableStateOf("") }
     val configuration = LocalConfiguration.current
     val columns = 2
-    val spacing = 24.dp
+    val spacing = 16.dp
     val itemSize by remember(configuration.screenWidthDp) {
         derivedStateOf {
             (configuration.screenWidthDp.dp - ((columns + 1) * spacing)) / columns
@@ -187,10 +187,16 @@ internal fun PlanetScreen(
             ) {
                 item(key = "pager") {
                     val pagerState = rememberPagerState { planetUiState.pageData.size }
-                    Column(
+                    Text(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp),
+                            .padding(spacing),
+                        text = "지금 뜨는 행성",
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth(),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         HorizontalPager(
@@ -217,6 +223,12 @@ internal fun PlanetScreen(
                 }
 
                 item(key = "search") {
+                    Text(  modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = spacing, end = spacing, top = 16.dp,bottom = 24.dp),
+                        text = "행성 찾아보기",
+                        style = MaterialTheme.typography.titleLarge
+                    )
                     CompactSearchTextField(searchText, onSearchTextChange)
                 }
 
@@ -224,7 +236,7 @@ internal fun PlanetScreen(
                     Toggles(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp),
+                            .padding(start = spacing),
                         text1 = "최신 순",
                         text2 = "참여자 순",
                         clickable1 = onSortedByRecent,

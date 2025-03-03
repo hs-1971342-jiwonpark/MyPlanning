@@ -74,29 +74,38 @@ private fun MainScreen(
         Dest.PlanetRoute::class.qualifiedName, Dest.MyPageRoute::class.qualifiedName -> true
         else -> false
     }
+    val cleanedRoute = currentRoute?.substringBefore("?")
+    val shouldDisplayTopBar = when (cleanedRoute) {
+        Dest.PreviewRoute::class.qualifiedName, Dest.PlanetPostRoute::class.qualifiedName -> false
+        else -> true
+    }
+
 
     Scaffold(
         contentWindowInsets = WindowInsets(0.dp),
         containerColor = main,
+        contentColor = Color.White,
         topBar = {
-            TopAppBar(
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = main
-                ),
-                title = {
-                    Image(
-                        contentScale = ContentScale.Fit,
-                        painter = painterResource(
-                            id = R.drawable.ic_title_logo
-                        ),
-                        contentDescription = null,
-                        modifier = Modifier
-                            .fillMaxHeight()
-                            .width(120.dp)
-                            .padding(start = 8.dp)
-                    )
-                },
-            )
+            if(shouldDisplayTopBar) {
+                TopAppBar(
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = main
+                    ),
+                    title = {
+                        Image(
+                            contentScale = ContentScale.Fit,
+                            painter = painterResource(
+                                id = R.drawable.ic_title_logo
+                            ),
+                            contentDescription = null,
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .width(120.dp)
+                                .padding(start = 8.dp)
+                        )
+                    },
+                )
+            }
         },
         bottomBar = {
             if (shouldDisplayBottomBar) {

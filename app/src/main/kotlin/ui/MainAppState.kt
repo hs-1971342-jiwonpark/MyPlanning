@@ -1,5 +1,6 @@
 package ui
 
+import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.remember
@@ -41,6 +42,7 @@ class MainAppState(
     val currentTopLevelDestination: NavigationDestination?
         @Composable get() {
             val currentRoute = currentDestination?.route
+            Log.d("ㅌㅌ","$currentRoute")
             val topLevelDestination =
                 NavigationDestination.entries.firstOrNull { topLevelDestination ->
                     val match = currentRoute == topLevelDestination.route.qualifiedName

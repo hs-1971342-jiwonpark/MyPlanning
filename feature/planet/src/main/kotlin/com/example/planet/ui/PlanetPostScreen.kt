@@ -4,6 +4,8 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,20 +15,26 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardColors
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -35,7 +43,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
@@ -43,7 +51,6 @@ import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
 import com.bumptech.glide.integration.compose.GlideImage
 import com.example.data.model.CommentBody
 import com.example.data.model.CommentUser
-import com.example.data.model.UserCard
 import com.example.designsystem.component.text.ErrorPage
 import com.example.designsystem.component.text.ImageTextField
 import com.example.designsystem.component.text.LoadingScreen
@@ -59,9 +66,27 @@ internal fun PlanetPostScreen(
     navController: NavController
 ) {
     val planetPostUiState by viewModel.planetPostUiState.collectAsState()
+    val commentList by viewModel.commentList.collectAsState()
     var imageUri by remember { mutableStateOf<Uri?>(Uri.EMPTY) }
     var text by remember { mutableStateOf("") }
-    val imagePickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? -> imageUri = uri }
+    val imagePickerLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+            imageUri = uri
+        }
+    val user = viewModel.takeUser
+
+    val onFavoriteClick: (CommentUser) -> Unit = { cUser ->
+        var count = cUser.likeCount.toInt()
+        val isFavorite = !cUser.isLiked
+        if (isFavorite) {
+            viewModel.addLike(user.value.uid, cUser.cid, cUser.coId.toString())
+            count++
+        } else {
+            viewModel.removeLike(user.value.uid, cUser.cid, cUser.coId.toString())
+            count--
+        }
+        viewModel.updateCommentLikeStatus(count,isFavorite,cUser.coId)
+    }
 
     PlanetPostScreen(
         uiState = planetPostUiState,
@@ -78,20 +103,24 @@ internal fun PlanetPostScreen(
         },
         onImageClick = { imagePickerLauncher.launch("image/*") },
         onValueChange = { text = it },
+        onFavoriteClick = onFavoriteClick,
         text,
-        imageUri
+        imageUri,
+        commentList
     )
 }
 
-@OptIn(ExperimentalGlideComposeApi::class)
+@OptIn(ExperimentalGlideComposeApi::class, ExperimentalMaterial3Api::class)
 @Composable
 internal fun PlanetPostScreen(
     uiState: PlanetPostUiState,
     onClick: () -> Unit,
     onImageClick: () -> Unit,
     onValueChange: (String) -> Unit,
+    onFavoriteClick: (CommentUser) -> Unit,
     text: String,
-    imageUri: Uri?
+    imageUri: Uri?,
+    commentList : List<CommentUser>
 ) {
 
     when (uiState) {
@@ -100,7 +129,16 @@ internal fun PlanetPostScreen(
         is PlanetPostUiState.Success -> Scaffold(
             containerColor = main,
             contentColor = Color.White,
-            modifier = Modifier.padding(bottom = 16.dp),
+            topBar = {
+                Text(
+                    text = uiState.card.keyWord,
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    textAlign = TextAlign.Center
+                )
+            },
             bottomBar = {
                 Row(
                     horizontalArrangement = Arrangement.Start, // 왼쪽 정렬
@@ -108,6 +146,7 @@ internal fun PlanetPostScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp)
+                        .padding(bottom = 16.dp)
                 ) {
                     ImageTextField(
                         img = imageUri,
@@ -125,23 +164,10 @@ internal fun PlanetPostScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValue)
-                    .padding(20.dp),
+                    .padding(horizontal = 20.dp)
+                    .padding(bottom = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                item {
-                    Row(
-                        Modifier
-                            .fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Start,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = uiState.card.keyWord + "행성에 오신 것을 환영합니다!!",
-                            style = MaterialTheme.typography.headlineSmall
-                        )
-                    }
-                    Spacer(Modifier.height(10.dp))
-                }
                 item {
                     Row(
                         verticalAlignment = Alignment.CenterVertically
@@ -161,38 +187,43 @@ internal fun PlanetPostScreen(
                 item {
                     GlideImage(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(10.dp))
+                            .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
                             .height(400.dp),
                         model = uiState.card.image,
                         contentDescription = null,
                         contentScale = ContentScale.Crop
                     )
-                }
-                item {
                     Text(
                         modifier = Modifier
+                            .clip(
+                                RoundedCornerShape(
+                                    bottomStart = 20.dp,
+                                    bottomEnd = 20.dp
+                                )
+                            )
                             .background(SubMain)
-                            .fillParentMaxWidth()
-                            .padding(5.dp),
+                            .fillMaxWidth()
+                            .padding(10.dp),
                         text = uiState.card.description,
                         style = MaterialTheme.typography.labelMedium
                     )
+                    Spacer(Modifier.height(20.dp))
                 }
 
                 item {
                     Toggles(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(0.dp),
+                            .height(20.dp),
                         text1 = "최신 순",
-                        text2 = "참여자 순",
+                        text2 = "좋아요 순",
                         clickable1 = {},
                         clickable2 = {}
                     )
                 }
 
-                items(uiState.commentList.size) { index ->
-                    ContentCard(uiState.commentList[index])
+                items(commentList.size) { index ->
+                    ContentCard(commentList[index], onFavoriteClick)
                 }
             }
         }
@@ -200,31 +231,16 @@ internal fun PlanetPostScreen(
 
 }
 
-@Preview
-@Composable
-fun d() {
-    PlanetPostScreen(
-        uiState = PlanetPostUiState.Success(
-            card = UserCard(),
-            commentList = listOf()
-        ),
-        onClick = { },
-        onImageClick = { },
-        onValueChange = { },
-        "",
-        Uri.EMPTY
-    )
-}
-
 
 @OptIn(ExperimentalGlideComposeApi::class)
 @Composable
-fun ContentCard(commentUser: CommentUser) {
+fun ContentCard(commentUser: CommentUser, onFavoriteClick: (CommentUser) -> Unit) {
+
+    val interactionSource = remember { MutableInteractionSource() }
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 10.dp)
-        ,
+            .padding(top = 10.dp),
         elevation = CardDefaults.cardElevation(
             defaultElevation = 3.dp
         ),
@@ -241,6 +257,7 @@ fun ContentCard(commentUser: CommentUser) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Start,
+                modifier = Modifier.fillMaxWidth()
             ) {
                 GlideImage(
                     modifier = Modifier.clip(CircleShape),
@@ -250,9 +267,31 @@ fun ContentCard(commentUser: CommentUser) {
                 Spacer(Modifier.width(10.dp))
                 Text(
                     text = commentUser.name,
+                    style = MaterialTheme.typography.labelLarge,
+                    modifier = Modifier.weight(1f)
+                )
+                Icon(
+                    imageVector = if (commentUser.isLiked) {
+                        Icons.Default.Favorite
+                    } else {
+                        Icons.Default.FavoriteBorder
+                    },
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(20.dp)
+                        .clickable(
+                            interactionSource = interactionSource,
+                            indication = null
+                        ) {
+                            onFavoriteClick(commentUser)
+                        }
+                )
+                Spacer(Modifier.width(5.dp))
+                Text(
+                    text = commentUser.likeCount.toString(),
                     style = MaterialTheme.typography.labelLarge
                 )
-
+                Spacer(Modifier.width(10.dp))
             }
             Spacer(Modifier.height(10.dp))
             if (commentUser.body.image != null) {
@@ -265,14 +304,14 @@ fun ContentCard(commentUser: CommentUser) {
                     contentDescription = null
                 )
             }
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(10.dp))
             Text(
                 modifier = Modifier
                     .fillMaxWidth(),
                 text = commentUser.body.comment.toString(),
-                style = MaterialTheme.typography.labelLarge
+                style = MaterialTheme.typography.labelMedium
             )
-            Spacer(Modifier.height(30.dp))
+            Spacer(Modifier.height(16.dp))
         }
     }
 }

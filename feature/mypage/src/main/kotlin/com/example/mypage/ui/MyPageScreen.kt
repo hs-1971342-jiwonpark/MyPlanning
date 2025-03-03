@@ -155,7 +155,7 @@ fun MainProfile(profileUrl: String, name: String) {
 fun CardList(navController: NavController) {
     val menuList = listOf(
         "내 정보",
-        "창여 중인 행성",
+        "참여 중인 행성",
         "이용 약관",
         "보유 행성",
         "로그 아웃",
@@ -168,9 +168,6 @@ fun CardList(navController: NavController) {
     }
 }
 
-const val MY_ACCOUNT_ROUTE = "myAccount"
-const val MY_RULE_ROUTE = "rule"
-
 @Composable
 fun MenuCard(menuName: String, navController: NavController, index: Int) {
     Column(
@@ -179,13 +176,10 @@ fun MenuCard(menuName: String, navController: NavController, index: Int) {
     ) {
         Button(
             onClick = {
-                val navOptions = navOptions {
-                    launchSingleTop = true
-                }
                 when (index) {
-                    0 -> navController.navigate(Dest.MyAccountRoute, navOptions)
-                    1 -> navController.navigate(Dest.HoldPlanetRoute, navOptions)
-                    2 -> navController.navigate(Dest.RuleRoute, navOptions)
+                    0 -> navController.navigate(Dest.MyAccountRoute)
+                    1 -> navController.navigate(Dest.HoldPlanetRoute)
+                    2 -> navController.navigate(Dest.RuleRoute)
                 }
             },
             modifier = Modifier

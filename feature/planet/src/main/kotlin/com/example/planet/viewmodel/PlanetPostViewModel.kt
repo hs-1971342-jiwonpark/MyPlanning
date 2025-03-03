@@ -7,17 +7,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import com.example.data.model.CommentUser
+import com.example.data.model.User
 import com.example.data.model.UserCard
 import com.example.data.repository.UserPrefRepository
 import com.example.data.repository.UserRepository
 import com.example.navigation.Dest
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -35,21 +33,31 @@ class PlanetPostViewModel @Inject constructor(
     private val _planetPostUiState = MutableStateFlow<PlanetPostUiState>(PlanetPostUiState.Loading)
     val planetPostUiState: StateFlow<PlanetPostUiState> = _planetPostUiState
 
+    private val _takeUser = MutableStateFlow(User())
+    val takeUser: StateFlow<User> = _takeUser
+
     init {
+        takeUser()
         refresh()
     }
 
-    fun refresh() {
+    private fun takeUser(){
+        viewModelScope.launch {
+            _takeUser.value = userPrefRepository.getUserPrefs().first()
+        }
+    }
+
+    private fun refresh() {
         viewModelScope.launch {
             _planetPostUiState.value = PlanetPostUiState.Loading
             try {
                 val fetchedCard = userRepository.getMainCard(cId).first()
-                val commentList = userRepository.getCommentList(cId).first()
+                _commentList.value = userRepository.getCommentList(cId).first()
 
                 _planetPostUiState.value = if (fetchedCard != null) {
                     PlanetPostUiState.Success(
                         card = fetchedCard,
-                        commentList = commentList
+                        commentList = _commentList.value
                     )
                 } else {
                     PlanetPostUiState.Error
@@ -75,13 +83,60 @@ class PlanetPostViewModel @Inject constructor(
                         newComment.body.image = it
                     }
                 }
-                Log.d("추가","${newComment.body}")
+                Log.d("추가", "${newComment.body}")
                 userRepository.addComment(cId, newComment)
 
                 refresh() // 댓글 추가 후 상태 갱신
             } catch (e: Exception) {
                 Log.e("PlanetPostViewModel", "Failed to add comment", e)
                 _planetPostUiState.value = PlanetPostUiState.Error
+            }
+        }
+    }
+
+    fun updateCommentLikeStatus(
+        favoriteCount: Int,
+        isFavorite: Boolean,
+        coId: Int
+    ) {
+        viewModelScope.launch {
+            try {
+                _commentList.value = _commentList.value.toMutableList().also { list ->
+                    list[coId] = list[coId].copy(
+                        isLiked = isFavorite,
+                        likeCount = favoriteCount.toLong()
+                    )
+                }
+            } catch (e: Exception) {
+                Log.e("Error", e.message.toString())
+            }
+        }
+    }
+
+    fun addLike(
+        uid: String,
+        cid: String,
+        coId: String
+    ) {
+        viewModelScope.launch {
+            try {
+                userRepository.addLike(uid, cid, coId)
+            } catch (e: Exception) {
+                Log.e("Error", e.message.toString())
+            }
+        }
+    }
+
+    fun removeLike(
+        uid: String,
+        cid: String,
+        coId: String
+    ) {
+        viewModelScope.launch {
+            try {
+                userRepository.removeLike(uid, cid, coId)
+            } catch (e: Exception) {
+                Log.e("Error", e.message.toString())
             }
         }
     }

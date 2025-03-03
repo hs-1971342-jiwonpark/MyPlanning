@@ -12,9 +12,6 @@ import com.example.navigation.FeatureGraph
 import com.example.navigation.NavigationDest
 import com.example.planet.ui.PlanetPostScreen
 
-fun NavController.navigateToPlanetPost(cid: String, navOptions: NavOptions) {
-    navigate(NavigationDest.PlanetPostRoute(cid), navOptions)
-}
 
 interface PlanetPostFeature : FeatureGraph
 
