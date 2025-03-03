@@ -48,7 +48,7 @@ dependencies {
     implementation(project(":common:navigation"))
     androidTestImplementation(platform(libs.androidx.compose.bom))
     implementation(platform(libs.androidx.compose.bom))
-
+    implementation (libs.androidx.core.splashscreen)
     implementation(libs.androidx.runtime)
     implementation(libs.googleid)
     implementation(libs.androidx.ui)
