@@ -8,7 +8,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -39,7 +41,7 @@ fun CompactSearchTextField(searchText: String, onSearchTextChange: (String) -> U
         onValueChange = { onSearchTextChange(it) },
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp)
+            .padding(horizontal = 16.dp)
             .clip(RoundedCornerShape(50.dp))
             .background(SubMain)
             .padding(horizontal = 16.dp, vertical = 12.dp),
@@ -184,7 +186,7 @@ fun ImageTextField(
                         Box(modifier = Modifier.fillMaxWidth()) {
                             if (text.isEmpty()) {
                                 Text(
-                                    text = "행성 설명 입력",
+                                    text = "댓글 입력",
                                     style = MaterialTheme.typography.labelMedium,
                                     color = WhiteAlpha65,
                                     modifier = Modifier.align(Alignment.CenterStart) // 왼쪽 정렬

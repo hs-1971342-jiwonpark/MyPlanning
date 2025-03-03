@@ -76,8 +76,8 @@ fun MyPlanningTheme(
         // Display styles (헤드라인 큰 스타일)
         displayLarge = TextStyle(
             fontFamily = CustomFontFamily,
-            fontWeight = FontWeight.Bold,
-            fontSize = 57.sp
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 48.sp
         ),
         displayMedium = TextStyle(
             fontFamily = CustomFontFamily,
@@ -110,8 +110,8 @@ fun MyPlanningTheme(
         // Title styles (제목, 서브타이틀)
         titleLarge = TextStyle(
             fontFamily = CustomFontFamily,
-            fontWeight = FontWeight.Normal,
-            fontSize = 22.sp
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 20.sp
         ),
         titleMedium = TextStyle(
             fontFamily = CustomFontFamily,
