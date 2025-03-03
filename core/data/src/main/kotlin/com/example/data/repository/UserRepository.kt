@@ -12,7 +12,6 @@ import com.google.firebase.firestore.Query
 import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.tasks.await
@@ -177,29 +176,6 @@ class UserRepository @Inject constructor(
 
     }
 
-    //댓글
-    suspend fun addComment(cardId: String, commentUser: CommentUser) {
-
-        val commentStore = cardStoreRef
-            .document(cardId)
-            .collection("comment")
-        try {
-            val coId = commentStore
-                .count()
-                .get(AggregateSource.SERVER)
-                .await()
-            commentUser.coId = coId.count.toInt()
-        } catch (e: Exception) {
-            Log.e("FirestoreCounter", "Error counting documents", e)
-            0
-        }
-
-        commentStore
-            .add(commentUser)
-            .addOnSuccessListener { Log.d("Firestore", "Success") }
-            .addOnFailureListener { e -> Log.e("Firestore", "Failed", e) }
-    }
-
     //카드 업로드
     suspend fun commentImgUpload(imageUri: Uri, cid: String): Flow<String> = flow {
         try {
@@ -222,29 +198,6 @@ class UserRepository @Inject constructor(
                     }
             }
             emit(imageUrl)
-        } catch (e: Exception) {
-            throw e
-        }
-    }
-
-    //댓글 리스트 가저오기
-    fun getCommentList(cardId: String): Flow<List<CommentUser>> = flow {
-        try {
-            val commentList = suspendCoroutine { continuation ->
-                cardStoreRef
-                    .document(cardId)
-                    .collection("comment")
-                    .get()
-                    .addOnSuccessListener { querySnapshot ->
-                        val comments =
-                            querySnapshot.documents.mapNotNull { it.toObject(CommentUser::class.java) }
-                        continuation.resume(comments) // 성공 시 리스트 반환
-                    }
-                    .addOnFailureListener { exception ->
-                        continuation.resumeWithException(exception) // 실패 시 예외 반환
-                    }
-            }
-            emit(commentList)
         } catch (e: Exception) {
             throw e
         }
@@ -293,5 +246,116 @@ class UserRepository @Inject constructor(
 
         documentReference.update("exp", FieldValue.increment(exp.toLong()))
     }
+
+
+    //댓글
+    suspend fun addComment(cardId: String, commentUser: CommentUser) {
+
+        val commentStore = cardStoreRef
+            .document(cardId)
+            .collection("comment")
+        try {
+            val coId = commentStore
+                .count()
+                .get(AggregateSource.SERVER)
+                .await()
+                .count
+
+            commentUser.coId = coId.toInt()
+
+            commentStore
+                .document(coId.toString())
+                .set(commentUser)
+                .addOnSuccessListener { Log.d("Firestore", "Success") }
+                .addOnFailureListener { e -> Log.e("Firestore", "Failed", e) }
+        } catch (e: Exception) {
+            Log.e("FirestoreCounter", "Error counting documents", e)
+            0
+        }
+
+    }
+
+    //댓글 리스트 가저오기
+    fun getCommentList(cardId: String): Flow<List<CommentUser>> = flow {
+        try {
+            val commentList = suspendCoroutine { continuation ->
+                cardStoreRef
+                    .document(cardId)
+                    .collection("comment")
+                    .get()
+                    .addOnSuccessListener { querySnapshot ->
+                        val comments =
+                            querySnapshot.documents.mapNotNull { it.toObject(CommentUser::class.java) }
+                        continuation.resume(comments) // 성공 시 리스트 반환
+                    }
+                    .addOnFailureListener { exception ->
+                        continuation.resumeWithException(exception) // 실패 시 예외 반환
+                    }
+            }
+            emit(commentList)
+        } catch (e: Exception) {
+            throw e
+        }
+    }
+
+    fun addLike(uid: String, cid: String, coId: String) {
+        val coIdRef = cardStoreRef
+            .document(cid)
+            .collection("comment")
+            .document(coId)
+
+        cardStoreRef.firestore.runTransaction { transaction ->
+            val snapshot = transaction.get(coIdRef)
+
+            val currentLikeCount = snapshot.getLong("likeCount") ?: 0L
+
+            // 좋아요 추가
+            transaction.set(
+                coIdRef.collection("commentUser").document(uid),
+                mapOf("uid" to uid)
+            )
+
+            // likeCount 증가
+            transaction.update(coIdRef, "likeCount", currentLikeCount + 1L)
+
+            // 좋아요 여부 저장 (필요한 경우)
+            transaction.update(coIdRef, "liked", true)
+        }.addOnSuccessListener {
+            Log.d("Firestore", "Like added successfully")
+        }.addOnFailureListener { e ->
+            Log.e("Firestore", "Failed to add like", e)
+        }
+    }
+
+
+    fun removeLike(uid: String, cid: String, coId: String) {
+        val coIdRef = cardStoreRef
+            .document(cid)
+            .collection("comment")
+            .document(coId)
+
+        cardStoreRef.firestore.runTransaction { transaction ->
+            val snapshot = transaction.get(coIdRef)
+
+            // 현재 likeCount 가져오기 (없으면 기본값 0)
+            val currentLikeCount = snapshot.getLong("likeCount") ?: 0L
+
+            if (currentLikeCount > 0) {
+                // 좋아요 삭제
+                transaction.delete(coIdRef.collection("commentUser").document(uid))
+
+                // likeCount 감소
+                transaction.update(coIdRef, "likeCount", currentLikeCount - 1L)
+
+                // 좋아요 여부 저장 (필요한 경우)
+                transaction.update(coIdRef, "liked", false)
+            }
+        }.addOnSuccessListener {
+            Log.d("Firestore", "Like removed successfully")
+        }.addOnFailureListener { e ->
+            Log.e("Firestore", "Failed to remove like", e)
+        }
+    }
+
 
 }
