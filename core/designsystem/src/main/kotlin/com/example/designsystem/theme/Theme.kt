@@ -155,7 +155,7 @@ fun MyPlanningTheme(
         labelSmall = TextStyle(
             fontFamily = CustomFontFamily,
             fontWeight = FontWeight.Medium,
-            fontSize = 11.sp
+            fontSize = 10.sp
         )
     )
 
