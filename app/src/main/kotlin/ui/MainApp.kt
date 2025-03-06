@@ -74,6 +74,10 @@ private fun MainScreen(
         Dest.PlanetRoute::class.qualifiedName, Dest.MyPageRoute::class.qualifiedName -> true
         else -> false
     }
+    val shouldDisplayFloatingButton = when (currentRoute) {
+        Dest.PlanetRoute::class.qualifiedName -> true
+        else -> false
+    }
     val cleanedRoute = currentRoute?.substringBefore("?")
     val shouldDisplayTopBar = when (cleanedRoute) {
         Dest.PreviewRoute::class.qualifiedName, Dest.PlanetPostRoute::class.qualifiedName -> false
@@ -122,7 +126,7 @@ private fun MainScreen(
             SnackbarHost(hostState = snackbarHostState)
         },
         floatingActionButton = {
-            if (shouldDisplayBottomBar) {
+            if (shouldDisplayFloatingButton) {
                 AddPostFloatingButton(
                     onClick = {
                         onClick()
