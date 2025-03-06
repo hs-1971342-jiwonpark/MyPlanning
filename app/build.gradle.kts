@@ -82,4 +82,6 @@ dependencies {
     implementation(project(":feature:login"))
     implementation(project(":feature:planet"))
     implementation(project(":feature:mypage"))
+    implementation(project(":common:shared"))
+
 }

@@ -11,8 +11,8 @@ android {
 
 dependencies {
     implementation(libs.androidx.material3)
-    implementation (libs.androidx.credentials)
-    implementation (libs.androidx.credentials.play.services.auth)
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services.auth)
     implementation(project(":common:navigation"))
     androidTestImplementation(platform(libs.androidx.compose.bom))
     implementation(platform(libs.androidx.compose.bom))
@@ -31,5 +31,8 @@ dependencies {
 
     implementation(libs.compose)
     implementation(libs.kotlinx.serialization.json.v160)
-
+    implementation("io.noties.markwon:core:4.6.2")
+    implementation("io.noties.markwon:ext-strikethrough:4.6.2")
+    implementation("io.noties.markwon:ext-tables:4.6.2")
+    implementation("io.noties.markwon:ext-tasklist:4.6.2")
 }
