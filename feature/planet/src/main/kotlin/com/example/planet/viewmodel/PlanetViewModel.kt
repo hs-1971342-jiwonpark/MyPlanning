@@ -12,6 +12,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -32,6 +33,12 @@ class PlanetViewModel @Inject constructor(
     private val _postType = MutableStateFlow(PostType.NOT)
     val postType: StateFlow<PostType> = _postType
 
+    private val _selectedSorting = MutableStateFlow("최신 순")  // 초기값은 최신순
+    val selectedSorting: StateFlow<String> = _selectedSorting
+
+    private val _isFirst = MutableStateFlow(true)
+    val isFirst: StateFlow<Boolean> = _isFirst
+
     private val _planetUiState = MutableStateFlow<PlanetUiState>(PlanetUiState.Loading)
 
     val planetUiState: StateFlow<PlanetUiState> = _planetUiState.stateIn(
@@ -39,8 +46,21 @@ class PlanetViewModel @Inject constructor(
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = PlanetUiState.Loading,
     )
+
     init {
-        fetchCardListData()
+        viewModelScope.launch {
+            val userPrefs = userPrefRepository.getUserPrefs().first()
+            Log.d("초기화","${userPrefRepository.getUserPrefs().first()}")
+            _isFirst.value = userPrefs.isFirst
+            fetchCardListData()
+        }
+    }
+
+    fun setIsFirst() {
+        viewModelScope.launch {
+            _isFirst.emit(false)
+            userRepository.updateUser(userPrefRepository.getUserPrefs().first().uid)
+        }
     }
 
     fun filteredCard(text: String) {
@@ -48,7 +68,8 @@ class PlanetViewModel @Inject constructor(
             _planetUiState.value = PlanetUiState.Success(
                 pageData = _pageData.value,
                 cardList = _cardData.value,  // 원본 리스트 유지
-                type = _postType.value
+                type = _postType.value,
+                isFirst = _isFirst.value
             )
         } else {
             val filterList = _cardData.value.filter {
@@ -58,20 +79,25 @@ class PlanetViewModel @Inject constructor(
             _planetUiState.value = PlanetUiState.Success(
                 pageData = _pageData.value,
                 cardList = filterList,
-                type = _postType.value
+                type = _postType.value,
+                isFirst=_isFirst.value
             )
         }
     }
 
 
     fun sortedByRecent() {
-        val sortedList = _cardData.value.sortedBy { it.cid }
-        _cardData.value = sortedList
-        _planetUiState.value = PlanetUiState.Success(
-            pageData = _pageData.value,
-            cardList = sortedList,
-            type = _postType.value
-        )
+        viewModelScope.launch {
+            val sortedList = _cardData.value.sortedBy { it.cid }
+            _cardData.value = sortedList
+            _planetUiState.value = PlanetUiState.Success(
+                pageData = _pageData.value,
+                cardList = sortedList,
+                type = _postType.value,
+                isFirst = userPrefRepository.getUserPrefs().first().isFirst
+            )
+            _selectedSorting.value = "최신 순"
+        }
     }
 
     fun sortedByPopular() {
@@ -80,8 +106,10 @@ class PlanetViewModel @Inject constructor(
         _planetUiState.value = PlanetUiState.Success(
             pageData = _pageData.value,
             cardList = sortedList,
-            type = _postType.value
+            type = _postType.value,
+            isFirst = _isFirst.value
         )
+        _selectedSorting.value = "참여자 순"
     }
 
     fun fetchCardListData() {
@@ -94,7 +122,8 @@ class PlanetViewModel @Inject constructor(
                     _planetUiState.value = PlanetUiState.Success(
                         pageData = _pageData.value,
                         cardList = cards,
-                        type = _postType.value
+                        type = _postType.value,
+                        isFirst = _isFirst.value
                     )
                 }
             } catch (e: Exception) {
@@ -130,7 +159,8 @@ class PlanetViewModel @Inject constructor(
         _planetUiState.value = PlanetUiState.Success(
             pageData = _pageData.value,
             cardList = _cardData.value,
-            type = postType
+            type = postType,
+            isFirst = _isFirst.value
         )
     }
 
@@ -140,7 +170,8 @@ sealed interface PlanetUiState {
     data class Success(
         val pageData: List<UserCard>,
         val cardList: List<UserCard>,
-        val type: PostType
+        val type: PostType,
+        val isFirst : Boolean
     ) : PlanetUiState
 
     data object Error : PlanetUiState
