@@ -9,6 +9,7 @@ import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -49,5 +50,13 @@ class MyPageViewModel @Inject constructor(
             }
         }
         
+    }
+
+    fun userExit(){
+        viewModelScope.launch {
+            val user = userPrefRepository.getUserPrefs().first()
+            userPrefRepository.deleteUser(user)
+            userRepository.userExit(user.uid)
+        }
     }
 }

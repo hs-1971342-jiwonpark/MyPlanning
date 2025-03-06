@@ -47,12 +47,14 @@ import com.bumptech.glide.Glide
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
 import com.bumptech.glide.request.target.CustomTarget
 import com.bumptech.glide.request.transition.Transition
+import com.example.data.model.MenuType
 import com.example.data.model.User
 import com.example.designsystem.theme.WhiteAlpha65
 import com.example.designsystem.theme.main
 import com.example.mypage.viewmodel.MyPageViewModel
 import com.example.mypage.R
 import com.example.navigation.Dest
+import com.example.navigation.NavigationDest
 
 @Composable
 internal fun MyPageScreen(
@@ -66,7 +68,8 @@ internal fun MyPageScreen(
     MyPageScreen(
         navController = navController,
         modifier = modifier,
-        user = userPrefData ?: User()
+        user = userPrefData ?: User(),
+        onExitClicked = {viewModel.userExit()}
     )
 }
 
@@ -74,7 +77,8 @@ internal fun MyPageScreen(
 internal fun MyPageScreen(
     navController: NavController,
     modifier: Modifier = Modifier,
-    user: User
+    user: User,
+    onExitClicked : () -> Unit
 ) {
 
     Scaffold(
@@ -91,7 +95,7 @@ internal fun MyPageScreen(
             MainProfile(
                 user.photoUrl, user.name
             )
-            CardList(navController)
+            CardList(navController,onExitClicked)
         }
     }
 }
@@ -152,24 +156,24 @@ fun MainProfile(profileUrl: String, name: String) {
 }
 
 @Composable
-fun CardList(navController: NavController) {
+fun CardList(navController: NavController, onExitClicked : () -> Unit) {
     val menuList = listOf(
         "내 정보",
+        "보유 행성",
         "참여 중인 행성",
         "이용 약관",
-        "보유 행성",
         "로그 아웃",
         "회원 탈퇴"
     )
     Column {
         menuList.forEachIndexed { index, item ->
-            MenuCard(item, navController, index)
+            MenuCard(item, navController, index, onExitClicked)
         }
     }
 }
 
 @Composable
-fun MenuCard(menuName: String, navController: NavController, index: Int) {
+fun MenuCard(menuName: String, navController: NavController, index: Int, onUserExit : () -> Unit) {
     Column(
         modifier = Modifier
             .border(width = 0.5.dp, color = Color.Black)
@@ -178,8 +182,21 @@ fun MenuCard(menuName: String, navController: NavController, index: Int) {
             onClick = {
                 when (index) {
                     0 -> navController.navigate(Dest.MyAccountRoute)
-                    1 -> navController.navigate(Dest.HoldPlanetRoute)
-                    2 -> navController.navigate(Dest.RuleRoute)
+                    1 -> navController.navigate(Dest.HoldPlanetRoute(MenuType.HOLD))
+                    2 -> navController.navigate(Dest.HoldPlanetRoute(MenuType.PARTICIPATED))
+                    3 -> navController.navigate(Dest.RuleRoute)
+                    4 -> navController.navigate(NavigationDest.LoginRoute) {
+                        popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                        launchSingleTop = true
+                    }
+
+                    5 -> {
+                        onUserExit()
+                        navController.navigate(NavigationDest.LoginRoute){
+                            popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    }
                 }
             },
             modifier = Modifier
