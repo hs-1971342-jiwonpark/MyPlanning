@@ -23,8 +23,9 @@ data class User(
     val name: String = "",
     val email: String = "",
     val photoUrl: String = "",
-    val exp: Int = 0,
+    var exp: Int = 0,
+    var isFirst : Boolean= true,
     val accessToken : String? = ""
 ) : Parcelable {
-    constructor() : this(0, "", "", "", "", 0,"")
+    constructor() : this(0, "", "", "", "", 0,true,"")
 }
