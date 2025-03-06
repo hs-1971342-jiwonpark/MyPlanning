@@ -17,16 +17,16 @@ import androidx.compose.ui.unit.dp
 import com.example.data.model.ToggleComponentInfo
 
 @Composable
-fun Toggles(modifier: Modifier = Modifier, text1 : String, text2 : String, clickable1 : () -> Unit, clickable2 : () -> Unit) {
+fun Toggles(modifier: Modifier = Modifier, text1 : String, text2 : String, clickable1 : () -> Unit, clickable2 : () -> Unit,selectedOption: String) {
     val radioButtons = remember {
         mutableStateListOf(
             ToggleComponentInfo(
-                isChecked = true,
+                isChecked = selectedOption == text1,
                 text = text1,
                 clickable = clickable1
             ),
             ToggleComponentInfo(
-                isChecked = false,
+                isChecked = selectedOption == text2,
                 text = text2,
                 clickable = clickable2
             )
