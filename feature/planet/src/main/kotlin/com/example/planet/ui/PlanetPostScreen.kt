@@ -34,7 +34,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -67,6 +66,7 @@ internal fun PlanetPostScreen(
 ) {
     val planetPostUiState by viewModel.planetPostUiState.collectAsState()
     val commentList by viewModel.commentList.collectAsState()
+    val selectedSorting by viewModel.selectedSorting.collectAsState()
     var imageUri by remember { mutableStateOf<Uri?>(Uri.EMPTY) }
     var text by remember { mutableStateOf("") }
     val imagePickerLauncher =
@@ -85,11 +85,12 @@ internal fun PlanetPostScreen(
             viewModel.removeLike(user.value.uid, cUser.cid, cUser.coId.toString())
             count--
         }
-        viewModel.updateCommentLikeStatus(count,isFavorite,cUser.coId)
+        viewModel.updateCommentLikeStatus(count, isFavorite, cUser.coId)
     }
 
     PlanetPostScreen(
         uiState = planetPostUiState,
+        selectedSorting = selectedSorting,
         onClick = {
             if (text.isNotBlank()) {
                 val cUser = CommentUser()
@@ -106,7 +107,9 @@ internal fun PlanetPostScreen(
         onFavoriteClick = onFavoriteClick,
         text,
         imageUri,
-        commentList
+        commentList,
+        { viewModel.sortedByRecent() },
+        { viewModel.sortedByLiked() }
     )
 }
 
@@ -114,13 +117,16 @@ internal fun PlanetPostScreen(
 @Composable
 internal fun PlanetPostScreen(
     uiState: PlanetPostUiState,
+    selectedSorting : String,
     onClick: () -> Unit,
     onImageClick: () -> Unit,
     onValueChange: (String) -> Unit,
     onFavoriteClick: (CommentUser) -> Unit,
     text: String,
     imageUri: Uri?,
-    commentList : List<CommentUser>
+    commentList: List<CommentUser>,
+    onRecentClicked: () -> Unit,
+    onLikedClicked: () -> Unit
 ) {
 
     when (uiState) {
@@ -217,8 +223,9 @@ internal fun PlanetPostScreen(
                             .height(20.dp),
                         text1 = "최신 순",
                         text2 = "좋아요 순",
-                        clickable1 = {},
-                        clickable2 = {}
+                        clickable1 = { onRecentClicked() },
+                        clickable2 = { onLikedClicked() },
+                        selectedOption = selectedSorting
                     )
                 }
 

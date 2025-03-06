@@ -16,6 +16,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -32,6 +33,9 @@ class PlanetPostViewModel @Inject constructor(
 
     private val _planetPostUiState = MutableStateFlow<PlanetPostUiState>(PlanetPostUiState.Loading)
     val planetPostUiState: StateFlow<PlanetPostUiState> = _planetPostUiState
+
+    private val _selectedSorting = MutableStateFlow("최신 순")  // 초기값은 최신순
+    val selectedSorting: StateFlow<String> = _selectedSorting
 
     private val _takeUser = MutableStateFlow(User())
     val takeUser: StateFlow<User> = _takeUser
@@ -52,9 +56,9 @@ class PlanetPostViewModel @Inject constructor(
             _planetPostUiState.value = PlanetPostUiState.Loading
             try {
                 val fetchedCard = userRepository.getMainCard(cId).first()
-                _commentList.value = userRepository.getCommentList(cId).first()
-
+                _commentList.value = userRepository.getCommentList(cId,_takeUser.value.uid).first()
                 _planetPostUiState.value = if (fetchedCard != null) {
+                    sortedByRecent()
                     PlanetPostUiState.Success(
                         card = fetchedCard,
                         commentList = _commentList.value
@@ -101,16 +105,21 @@ class PlanetPostViewModel @Inject constructor(
     ) {
         viewModelScope.launch {
             try {
-                _commentList.value = _commentList.value.toMutableList().also { list ->
-                    list[coId] = list[coId].copy(
-                        isLiked = isFavorite,
-                        likeCount = favoriteCount.toLong()
-                    )
+                _commentList.value = _commentList.value.map { comment ->
+                    if (comment.coId == coId) {
+                        comment.copy(
+                            isLiked = isFavorite,
+                            likeCount = favoriteCount.toLong()
+                        )
+                    } else {
+                        comment
+                    }
                 }
             } catch (e: Exception) {
                 Log.e("Error", e.message.toString())
             }
         }
+
     }
 
     fun addLike(
@@ -138,6 +147,29 @@ class PlanetPostViewModel @Inject constructor(
             } catch (e: Exception) {
                 Log.e("Error", e.message.toString())
             }
+        }
+    }
+
+
+    fun sortedByRecent(){
+       viewModelScope.launch {
+           _commentList.update { list ->
+               list.sortedByDescending {
+                   it.coId
+               }
+           }
+           _selectedSorting.value = "최신 순"
+       }
+    }
+
+    fun sortedByLiked(){
+        viewModelScope.launch {
+            _commentList.update { list ->
+                list.sortedByDescending {
+                    it.likeCount
+                }
+            }
+            _selectedSorting.value = "좋아요 순"
         }
     }
 }
