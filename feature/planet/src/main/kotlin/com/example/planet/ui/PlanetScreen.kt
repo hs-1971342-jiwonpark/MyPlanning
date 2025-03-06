@@ -1,5 +1,6 @@
 package com.example.planet.ui
 
+import android.util.Log
 import android.view.ViewTreeObserver
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -26,9 +27,12 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.BasicText
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -50,6 +54,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.times
@@ -117,14 +122,20 @@ internal fun PlanetScreen(
     }
     val lazyListState = rememberLazyListState()
     val planetUiState by viewModel.planetUiState.collectAsState()
-
+    val selectedSorting by viewModel.selectedSorting.collectAsState()
+    val isFirst by viewModel.isFirst.collectAsState()
+    Log.d("유저","${isFirst}")
     LaunchedEffect(Unit) {
         viewModel.fetchCardListData()
     }
 
     PlanetScreen(
+        isFirst,
         keyBoardHeight,
+        selectedSorting,
         searchText,
+        { viewModel.setIsFirst() },
+        { navController.navigate(Dest.RuleRoute) },
         { newText ->
             searchText = newText
             viewModel.filteredCard(newText)
@@ -156,8 +167,12 @@ internal fun PlanetScreen(
 @OptIn(ExperimentalLayoutApi::class, ExperimentalGlideComposeApi::class)
 @Composable
 internal fun PlanetScreen(
+    isFirst: Boolean,
     keyBoardHeight: Dp,
+    selectedSorting: String,
     searchText: String,
+    setIsFirst: () -> Unit,
+    onClickMoveRulePage: () -> Unit,
     onSearchTextChange: (String) -> Unit,
     onSortedByPopular: () -> Unit,
     onSortedByRecent: () -> Unit,
@@ -178,121 +193,132 @@ internal fun PlanetScreen(
         PlanetUiState.Error -> ErrorPage("에러")
         PlanetUiState.Loading -> LoadingScreen(text = "로딩")
         is PlanetUiState.Success ->
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(main)
-                    .imePadding(),
-                state = lazyListState
-            ) {
-                item(key = "pager") {
-                    val pagerState = rememberPagerState { planetUiState.pageData.size }
-                    Text(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(spacing),
-                        text = "지금 뜨는 행성",
-                        style = MaterialTheme.typography.titleLarge
-                    )
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        HorizontalPager(
-                            state = pagerState,
-                            contentPadding = PaddingValues(horizontal = 48.dp)
-                        ) { page ->
-                            if (page in planetUiState.pageData.indices) {
-                                val pageOffset by remember(page, pagerState) {
-                                    derivedStateOf {
-                                        (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
+            if (isFirst) {
+                ConsentScreen(onClickMoveRulePage, setIsFirst)
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(main)
+                        .imePadding(),
+                    state = lazyListState
+                ) {
+                    item(key = "pager") {
+                        val pagerState = rememberPagerState { planetUiState.pageData.size }
+                        Text(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(spacing),
+                            text = "지금 뜨는 행성",
+                            style = MaterialTheme.typography.titleLarge
+                        )
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            HorizontalPager(
+                                state = pagerState,
+                                contentPadding = PaddingValues(horizontal = 48.dp)
+                            ) { page ->
+                                if (page in planetUiState.pageData.indices) {
+                                    val pageOffset by remember(page, pagerState) {
+                                        derivedStateOf {
+                                            (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
+                                        }
                                     }
+                                    PagerCard(
+                                        pageOffset = pageOffset,
+                                        card = planetUiState.pageData[page],
+                                        onMovePlanetPost = onMovePlanetPost,
+                                        onSetCardId = onSetCardId
+                                    )
                                 }
-                                PagerCard(
-                                    pageOffset = pageOffset,
-                                    card = planetUiState.pageData[page],
-                                    onMovePlanetPost = onMovePlanetPost,
-                                    onSetCardId = onSetCardId
-                                )
                             }
+
+                            PagerIndicator(pagerState)
                         }
-
-                        PagerIndicator(pagerState)
                     }
-                }
 
-                item(key = "search") {
-                    Text(  modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = spacing, end = spacing, top = 16.dp,bottom = 24.dp),
-                        text = "행성 찾아보기",
-                        style = MaterialTheme.typography.titleLarge
-                    )
-                    CompactSearchTextField(searchText, onSearchTextChange)
-                }
+                    item(key = "search") {
+                        Text(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(
+                                    start = spacing,
+                                    end = spacing,
+                                    top = 16.dp,
+                                    bottom = 24.dp
+                                ),
+                            text = "행성 찾아보기",
+                            style = MaterialTheme.typography.titleLarge
+                        )
+                        CompactSearchTextField(searchText, onSearchTextChange)
+                    }
 
-                item(key = "toggles") {
-                    Toggles(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(start = spacing),
-                        text1 = "최신 순",
-                        text2 = "참여자 순",
-                        clickable1 = onSortedByRecent,
-                        clickable2 = onSortedByPopular
-                    )
-                }
+                    item(key = "toggles") {
+                        Toggles(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = spacing),
+                            text1 = "최신 순",
+                            text2 = "참여자 순",
+                            clickable1 = onSortedByRecent,
+                            clickable2 = onSortedByPopular,
+                            selectedOption = selectedSorting
+                        )
+                    }
 
-                item(key = "grid") {
-                    FlowRow(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = spacing)
-                            .padding(bottom = 20.dp),
-                        horizontalArrangement = Arrangement.spacedBy(spacing),
-                        verticalArrangement = Arrangement.spacedBy(spacing)
-                    ) {
-                        planetUiState.cardList.map { card ->
-                            Card(
-                                modifier = Modifier
-                                    .size(itemSize)
-                                    .clickable {
-                                        onMovePlanetPost(card)
-                                        onSetCardId(card.cid.toString())
-                                    }
-                            ) {
-                                Box(
+                    item(key = "grid") {
+                        FlowRow(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = spacing)
+                                .padding(bottom = 20.dp),
+                            horizontalArrangement = Arrangement.spacedBy(spacing),
+                            verticalArrangement = Arrangement.spacedBy(spacing)
+                        ) {
+                            planetUiState.cardList.map { card ->
+                                Card(
                                     modifier = Modifier
-                                        .fillMaxSize()
+                                        .size(itemSize)
+                                        .clickable {
+                                            onMovePlanetPost(card)
+                                            onSetCardId(card.cid.toString())
+                                        }
                                 ) {
-                                    GlideImage(
-                                        model = card.image,
-                                        contentDescription = null,
+                                    Box(
                                         modifier = Modifier
-                                            .fillMaxSize(),
-                                        contentScale = ContentScale.Crop
-                                    )
-                                    NameSheet(
-                                        Modifier
-                                            .background(Color.Black.copy(alpha = 0.5f)),
-                                        text = "${card.ownerName}님의 키워드 : ${card.keyWord}",
-                                        alignment = Alignment.TopCenter
-                                    )
+                                            .fillMaxSize()
+                                    ) {
+                                        GlideImage(
+                                            model = card.image,
+                                            contentDescription = null,
+                                            modifier = Modifier
+                                                .fillMaxSize(),
+                                            contentScale = ContentScale.Crop
+                                        )
+                                        NameSheet(
+                                            Modifier
+                                                .background(Color.Black.copy(alpha = 0.5f)),
+                                            text = "${card.ownerName}님의 키워드 : ${card.keyWord}",
+                                            alignment = Alignment.TopCenter
+                                        )
 
-                                    NameSheet(
-                                        Modifier
-                                            .background(Color.Black.copy(alpha = 0.5f)),
-                                        text = "${card.participatePeople}명 참여중",
-                                        alignment = Alignment.BottomCenter
-                                    )
+                                        NameSheet(
+                                            Modifier
+                                                .background(Color.Black.copy(alpha = 0.5f)),
+                                            text = "${card.participatePeople}명 참여중",
+                                            alignment = Alignment.BottomCenter
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
-                }
-                item {
-                    Spacer(Modifier.height(paddings))
+                    item {
+                        Spacer(Modifier.height(paddings))
+                    }
                 }
             }
     }
@@ -425,3 +451,52 @@ fun NameSheet(
     }
 }
 
+@Composable
+fun ConsentScreen(onClickMoveRulePage: () -> Unit, onClicked: () -> Unit) {
+    var isChecked by remember { mutableStateOf(false) }
+    var isNavigating by remember { mutableStateOf(false) } // ✅ 중복 네비게이션 방지
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("MyPlanning 개인정보 처리방침 및 제3자 제공 동의", fontWeight = FontWeight.Bold)
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text("카카오 및 구글 로그인 시 개인정보 제공에 동의해야 합니다. 자세한 내용은 아래 버튼을 통해 확인하세요.")
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Button(onClick = { onClickMoveRulePage() }) {
+            Text("자세히 보기")
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.clickable { isChecked = !isChecked }
+        ) {
+            Checkbox(checked = isChecked, onCheckedChange = { isChecked = it })
+            BasicText("개인정보 제공 및 처리방침에 동의합니다.")
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Button(
+            onClick = {
+                if (isChecked && !isNavigating) { // ✅ 중복 실행 방지
+                    isNavigating = true
+                    onClicked()
+                }
+            },
+            enabled = isChecked
+        ) {
+            Text("동의하고 계속하기")
+        }
+    }
+}
