@@ -5,6 +5,7 @@ import android.util.Log
 import com.example.data.model.CommentUser
 import com.example.data.model.User
 import com.example.data.model.UserCard
+import com.google.android.gms.tasks.Tasks
 import com.google.firebase.firestore.AggregateSource
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
@@ -29,6 +30,27 @@ class UserRepository @Inject constructor(
     private val cardStorageRef = fireStorageRef.child("cards")
     private val cardStoreRef = firestore.collection("cards")
     private val userStoreRef = firestore.collection("users")
+
+    fun updateUser(uid : String){
+        userStoreRef
+            .document(uid)
+            .update("isFirst", false)
+            .addOnSuccessListener { Log.d("Firestore", "Success") }
+            .addOnFailureListener { e -> Log.e("Firestore", "Failed", e) }
+    }
+
+    fun userExit(uid : String){
+        userStoreRef
+            .document(uid)
+            .delete()
+
+        cardStoreRef.whereEqualTo("userId", uid).get()
+            .addOnSuccessListener { documents ->
+                for (document in documents) {
+                    cardStoreRef.document(document.id).delete()
+                }
+            }
+    }
 
     //카드 업로드
     suspend fun cardUpload(imageUri: Uri, card: UserCard): Flow<String> = flow {
@@ -78,6 +100,20 @@ class UserRepository @Inject constructor(
     }
 
     suspend fun getHoldCardList(userId: String): Flow<List<String>> = flow {
+        try {
+            val cardIdList = userStoreRef.document(userId)
+                .collection("cards")
+                .get()
+                .await()
+                .documents.map { it.id }
+
+            emit(cardIdList) // Flow로 반환
+        } catch (e: Exception) {
+            throw e
+        }
+    }
+
+    suspend fun getParticipatedCardList(userId: String): Flow<List<String>> = flow {
         try {
             val cardIdList = userStoreRef.document(userId)
                 .collection("participateCard")
@@ -276,27 +312,52 @@ class UserRepository @Inject constructor(
     }
 
     //댓글 리스트 가저오기
-    fun getCommentList(cardId: String): Flow<List<CommentUser>> = flow {
+    fun getCommentList(cardId: String, uid: String): Flow<List<CommentUser>> = flow {
         try {
+            val comments = mutableListOf<CommentUser>()
             val commentList = suspendCoroutine { continuation ->
                 cardStoreRef
                     .document(cardId)
                     .collection("comment")
                     .get()
                     .addOnSuccessListener { querySnapshot ->
-                        val comments =
-                            querySnapshot.documents.mapNotNull { it.toObject(CommentUser::class.java) }
-                        continuation.resume(comments) // 성공 시 리스트 반환
+                        val deferreds = querySnapshot.documents.map { commentDoc ->
+                            val commentId = commentDoc.id
+                            val commentUserCollection = cardStoreRef.document(cardId)
+                                .collection("comment")
+                                .document(commentId)
+                                .collection("commentUser")
+
+                            //댓글 당 좋아요 유저
+                            commentUserCollection
+                                .document(uid)  // uid가 문서 ID로 존재하는지 확인
+                                .get()
+                                .continueWith { task ->
+                                    val userLiked = task.result?.exists() == true
+
+                                    val comment = commentDoc.toObject(CommentUser::class.java)
+                                    comment?.let {
+                                        it.isLiked = userLiked
+                                        comments.add(it)
+                                    }
+                                }
+                        }
+
+                        Tasks.whenAllComplete(deferreds).addOnCompleteListener {
+                            continuation.resume(comments)
+                        }
                     }
                     .addOnFailureListener { exception ->
-                        continuation.resumeWithException(exception) // 실패 시 예외 반환
+                        continuation.resumeWithException(exception)
                     }
             }
+
             emit(commentList)
         } catch (e: Exception) {
             throw e
         }
     }
+
 
     fun addLike(uid: String, cid: String, coId: String) {
         val coIdRef = cardStoreRef
@@ -318,8 +379,6 @@ class UserRepository @Inject constructor(
             // likeCount 증가
             transaction.update(coIdRef, "likeCount", currentLikeCount + 1L)
 
-            // 좋아요 여부 저장 (필요한 경우)
-            transaction.update(coIdRef, "liked", true)
         }.addOnSuccessListener {
             Log.d("Firestore", "Like added successfully")
         }.addOnFailureListener { e ->
@@ -346,9 +405,6 @@ class UserRepository @Inject constructor(
 
                 // likeCount 감소
                 transaction.update(coIdRef, "likeCount", currentLikeCount - 1L)
-
-                // 좋아요 여부 저장 (필요한 경우)
-                transaction.update(coIdRef, "liked", false)
             }
         }.addOnSuccessListener {
             Log.d("Firestore", "Like removed successfully")
