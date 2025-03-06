@@ -1,5 +1,6 @@
 package com.example.navigation
 
+import com.example.data.model.MenuType
 import com.example.data.model.PostType
 import kotlinx.serialization.Serializable
 
@@ -42,7 +43,9 @@ sealed class NavigationDest {
     data object RuleRoute : NavigationDest()
 
     @Serializable
-    data object HoldPlanetRoute : NavigationDest()
+    data class HoldPlanetRoute(
+        val type : MenuType = MenuType.HOLD
+    ): NavigationDest()
 
 }
 
@@ -85,5 +88,7 @@ sealed class Dest {
     data object RuleRoute : Dest()
 
     @Serializable
-    data object HoldPlanetRoute : Dest()
+    data class HoldPlanetRoute(
+        val type : MenuType = MenuType.HOLD
+    ) : Dest()
 }
