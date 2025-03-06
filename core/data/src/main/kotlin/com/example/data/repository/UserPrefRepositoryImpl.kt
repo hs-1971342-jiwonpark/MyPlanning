@@ -17,4 +17,10 @@ class UserPrefRepositoryImpl @Inject constructor(
     override suspend fun setUserPrefs(user: User) {
         dataStore.updateData { user }
     }
+
+    override suspend fun deleteUser(user: User) {
+        dataStore.data.map {
+            it == User()
+        }
+    }
 }
