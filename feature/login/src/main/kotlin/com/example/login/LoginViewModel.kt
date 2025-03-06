@@ -58,6 +58,7 @@ class LoginViewModel @Inject constructor(
     }
 
     private fun checkLoginStatus(): Boolean {
+        Log.d("로그인","${_isLoggedIn.value}")
         return _isLoggedIn.value
     }
 
@@ -87,14 +88,14 @@ class LoginViewModel @Inject constructor(
                     val idToken = googleIdTokenCredential.idToken
 
                     val currentUserUid = FirebaseAuth.getInstance().currentUser?.uid
-
+                    var isFirst = true
                     val exp = if (currentUserUid != null) {
                         try {
                             val userSnapshot = firestore.collection("users")
                                 .document(currentUserUid)
                                 .get()
                                 .await()
-
+                            isFirst = userSnapshot.getBoolean("isFirst") ?: true
                             userSnapshot.getLong("exp")?.toInt() ?: 0
                         } catch (e: Exception) {
                             Log.e("Firestore", "Error fetching exp value", e)
@@ -112,7 +113,8 @@ class LoginViewModel @Inject constructor(
                                     email = user.email.toString(),
                                     photoUrl = user.photoUrl.toString(),
                                     uid = user.uid,
-                                    exp = exp
+                                    exp = exp,
+                                    isFirst = isFirst
                                 )
                                 userRepository.saveUser(userInfo) // 호출 전후에 로그 추가
                                 _loginState.value = LoginState.Success(userInfo)
@@ -188,6 +190,22 @@ class LoginViewModel @Inject constructor(
 
                         if (existingUser != null) {
                             Log.i(TAG, "기존 사용자 로그인 성공: ${existingUser.name}")
+
+                            var isFirst = true
+                            val exp = try {
+                                val userSnapshot = firestore.collection("users")
+                                    .document(existingUser.uid)
+                                    .get()
+                                    .await()
+                                isFirst = userSnapshot.getBoolean("isFirst") ?: true
+                                userSnapshot.getLong("exp")?.toInt() ?: 0
+                            } catch (e: Exception) {
+                                Log.e("Firestore", "Error fetching exp value", e)
+                            }
+
+                            userInfo.exp = exp
+                            userInfo.isFirst = isFirst
+                            Log.d("첫","$existingUser")
                             _userData.value = existingUser
                             _loginState.value = LoginState.Success(existingUser)
                         } else {

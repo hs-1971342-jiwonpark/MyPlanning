@@ -1,5 +1,6 @@
 package com.example.login
 
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
@@ -30,16 +31,10 @@ class LoginFeatureImpl : LoginFeature {
                     }
                 )
             ) {
-                provide as LoginViewModel
-                LoginScreen(provide, navHostController)
+                LoginScreen(hiltViewModel(), navHostController)
             }
         }
     }
 
-}
-
-
-fun NavController.navigateToLogin(navOptions: NavOptions) {
-    navigate(NavigationDest.LoginRoute, navOptions)
 }
 
