@@ -1,74 +1,44 @@
 package com.example.rule
 
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
+import android.content.Context
+import android.widget.TextView
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.navigation.NavController
-import com.example.designsystem.theme.main
+import io.noties.markwon.Markwon
+import io.noties.markwon.ext.tables.TablePlugin
 
 @Composable
-internal fun RuleScreen(
-    navController: NavController
-) {
+fun RuleScreen(navController: NavController) {
+    val context = LocalContext.current
+    val terms: String = context.getString(R.string.rule)
 
-    RuleScreen(
-        navController = navController,
-        modifier = Modifier
-    )
+    RuleContent(terms, context)
 }
 
 @Composable
-internal fun RuleScreen(
-    navController: NavController,
-    modifier: Modifier = Modifier
-) {
-
-    Scaffold(
-        modifier = modifier
-            .fillMaxSize(),
-        containerColor = main
-    ) { paddingValues ->
-        Column(
-            modifier = modifier
-                .padding(paddingValues),
-            verticalArrangement = Arrangement.spacedBy(50.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            CardList(navController)
-        }
+fun RuleContent(terms: String, context: Context) {
+    val markwon = remember {
+        Markwon.builder(context)
+            .usePlugin(TablePlugin.create(context)) // 테이블 렌더링 지원 추가
+            .build()
     }
-}
 
-@Composable
-fun CardList(navController: NavController) {
-    val menuList = listOf(
-        "내 정보",
-        "이용 약관",
-        "보유 행성"
-    )
-    Column {
-        menuList.forEach {
-            MenuCard()
+    LazyColumn(modifier = Modifier.padding(16.dp)) {
+        item {
+            AndroidView(factory = { ctx ->
+                TextView(ctx).apply {
+                    textSize = 11f // 텍스트 크기 조절
+                }
+            }, update = { textView ->
+                markwon.setMarkdown(textView, terms) // 마크다운 적용 (테이블 지원 포함)
+            })
         }
-    }
-}
-
-@Composable
-fun MenuCard() {
-    Column(
-        modifier = Modifier
-            .border(width = 0.5.dp, color = Color.Black)
-    ) {
-       Text("이용 약관")
     }
 }
 
