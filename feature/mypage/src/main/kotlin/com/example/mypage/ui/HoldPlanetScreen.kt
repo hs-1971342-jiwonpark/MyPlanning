@@ -31,6 +31,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
 import com.bumptech.glide.integration.compose.GlideImage
+import com.example.data.model.MenuType
 import com.example.data.model.UserCard
 import com.example.designsystem.R
 import com.example.designsystem.component.text.ErrorPage
@@ -49,10 +50,16 @@ internal fun HoldPlanetScreen(
 ) {
     val holdPlanetUiState by viewModel.holdUiState.collectAsState()
     var cardId by rememberSaveable { mutableStateOf("") }
+    val navType = viewModel.navType
+    val title = when(navType){
+        MenuType.HOLD -> "보유 중인 행성"
+        MenuType.PARTICIPATED -> "참여 중인 행성"
+    }
 
     HoldPlanetScreen(
         navController = navController,
         modifier = modifier,
+        title = title,
         holdPlanetUiState = holdPlanetUiState,
         onMovePlanetPost = { card ->
             cardId = card.cid.toString()
@@ -77,6 +84,7 @@ internal fun HoldPlanetScreen(
 internal fun HoldPlanetScreen(
     navController: NavController,
     modifier: Modifier = Modifier,
+    title : String,
     holdPlanetUiState: HoldPlanetUiState,
     onMovePlanetPost: (UserCard) -> Unit,
     onSetCardId: (String) -> Unit
@@ -93,7 +101,7 @@ internal fun HoldPlanetScreen(
                     .padding(bottom = 20.dp),
             ) {
                 Text(
-                    text = "참여 중인 행성",
+                    text = title,
                     style = MaterialTheme.typography.labelLarge,
                     color = Color.White
                 )

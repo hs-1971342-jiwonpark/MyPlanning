@@ -7,6 +7,7 @@ import androidx.navigation.NavOptions
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.navDeepLink
+import com.example.data.model.MenuType
 import com.example.mypage.ui.HoldPlanetScreen
 import com.example.navigation.Dest
 import com.example.navigation.FeatureGraph
@@ -20,11 +21,13 @@ class HoldPlanetFeatureImpl : HoldPlanetFeature {
         navGraphBuilder: NavGraphBuilder,
         provide: Any?
     ) {
-        navGraphBuilder.navigation<NavigationDest.HoldPlanetRoute>(startDestination = Dest.HoldPlanetRoute) {
+        navGraphBuilder.navigation<NavigationDest.HoldPlanetRoute>(startDestination = Dest.HoldPlanetRoute(
+            type = MenuType.HOLD
+        )) {
             composable<Dest.HoldPlanetRoute>(
                 deepLinks = listOf(
                     navDeepLink {
-                        uriPattern = "$uri/holdPlanet"
+                        uriPattern = "$uri/holdPlanet/{type}"
                     }
                 )
             ) {

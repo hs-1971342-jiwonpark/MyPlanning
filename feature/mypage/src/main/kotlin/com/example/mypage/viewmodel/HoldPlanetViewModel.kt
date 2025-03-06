@@ -1,12 +1,16 @@
 package com.example.mypage.viewmodel
 
 import android.util.Log
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.toRoute
+import com.example.data.model.MenuType
 import com.example.data.model.PostType
 import com.example.data.model.UserCard
 import com.example.data.repository.UserPrefRepository
 import com.example.data.repository.UserRepository
+import com.example.navigation.Dest
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -18,10 +22,12 @@ import javax.inject.Inject
 
 @HiltViewModel
 class HoldPlanetViewModel @Inject constructor(
+    savedStateHandle: SavedStateHandle,
     private val userRepository: UserRepository,
     private val userPrefRepository: UserPrefRepository
 ) : ViewModel() {
     private val _holdUiState = MutableStateFlow<HoldPlanetUiState>(HoldPlanetUiState.Loading)
+    val navType = savedStateHandle.toRoute<Dest.HoldPlanetRoute>().type
 
     val holdUiState: StateFlow<HoldPlanetUiState> = _holdUiState.stateIn(
         scope = viewModelScope,
@@ -43,14 +49,21 @@ class HoldPlanetViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val cardIdList =
-                    userRepository.getHoldCardList(userPrefRepository.getUserPrefs().first().uid)
-                        .first()
+                    if (navType == MenuType.HOLD) {
+                        userRepository.getHoldCardList(
+                            userPrefRepository.getUserPrefs().first().uid
+                        ).first()
+                    } else {
+                        userRepository.getParticipatedCardList(
+                            userPrefRepository.getUserPrefs().first().uid
+                        ).first()
+                    }
                 val cardList = mutableListOf<UserCard>()
 
                 cardIdList.forEach {
                     userRepository.getMainCard(it).first()?.let { card -> cardList.add(card) }
                 }
-                Log.d("카드","$cardList")
+                Log.d("카드", "$cardList")
                 _cardData.value = cardList
                 _holdUiState.value = HoldPlanetUiState.Success(
                     cardList = cardList,
