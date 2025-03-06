@@ -8,4 +8,6 @@ interface UserPrefRepository {
     suspend fun getUserPrefs(): Flow<User>
 
     suspend fun setUserPrefs(user: User)
+
+    suspend fun deleteUser(user: User)
 }
